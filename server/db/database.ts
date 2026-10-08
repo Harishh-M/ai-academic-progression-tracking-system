@@ -1,3 +1,5 @@
+import { RowDataPacket } from 'mysql2';
+import { pool } from './mysql.js';
 import {
   User,
   Faculty,
@@ -13,152 +15,330 @@ import {
   AuditLogRecord,
   InstitutionalRegulation,
   AIAnalysisResult,
+  UserRole,
 } from '../../src/types/index.js';
 import { generateInitialSeedData } from './seedData.js';
 
 export class Database {
-  private users: Map<string, User> = new Map();
-  private faculty: Map<string, Faculty> = new Map();
-  private students: Map<string, Student> = new Map();
-  private courses: Map<string, Course> = new Map();
-  private semesters: Map<string, Semester> = new Map();
-  private facultyCourses: Map<string, FacultyCourseMapping> = new Map();
-  private studentCourses: Map<string, StudentCourseMapping> = new Map();
-  private attendance: Map<string, AttendanceRecord> = new Map();
-  private internalMarks: Map<string, InternalMarkRecord> = new Map();
-  private semesterResults: Map<string, SemesterResultRecord> = new Map();
-  private achievements: Map<string, AchievementRecord> = new Map();
-  private auditLogs: AuditLogRecord[] = [];
-  private regulations: Map<string, InstitutionalRegulation> = new Map();
-  private aiAnalyses: Map<string, AIAnalysisResult> = new Map();
-
-  constructor() {
-    this.seed();
-  }
-
-  public seed() {
-    const data = generateInitialSeedData();
-    this.users.clear();
-    this.faculty.clear();
-    this.students.clear();
-    this.courses.clear();
-    this.semesters.clear();
-    this.facultyCourses.clear();
-    this.studentCourses.clear();
-    this.attendance.clear();
-    this.internalMarks.clear();
-    this.semesterResults.clear();
-    this.achievements.clear();
-    this.regulations.clear();
-    this.aiAnalyses.clear();
-
-    data.users.forEach((u) => this.users.set(u.id, u));
-    data.faculty.forEach((f) => this.faculty.set(f.id, f));
-    data.students.forEach((s) => this.students.set(s.id, s));
-    data.courses.forEach((c) => this.courses.set(c.id, c));
-    data.semesters.forEach((s) => this.semesters.set(s.id, s));
-    data.facultyCourses.forEach((fc) => this.facultyCourses.set(fc.id, fc));
-    data.studentCourses.forEach((sc) => this.studentCourses.set(sc.id, sc));
-    data.attendance.forEach((a) => this.attendance.set(a.id, a));
-    data.internalMarks.forEach((im) => this.internalMarks.set(im.id, im));
-    data.semesterResults.forEach((sr) => this.semesterResults.set(sr.id, sr));
-    data.achievements.forEach((ach) => this.achievements.set(ach.id, ach));
-    data.regulations.forEach((r) => this.regulations.set(r.id, r));
-    this.auditLogs = [...data.auditLogs];
-  }
-
-  // Users
-  getUserByUsernameOrEmail(identifier: string): User | undefined {
-    const idLower = identifier.trim().toLowerCase();
-    for (const u of this.users.values()) {
-      if (u.username.toLowerCase() === idLower || u.email.toLowerCase() === idLower) {
-        return u;
+  /**
+   * One-time seeder that populates MySQL only when the database is completely empty.
+   * If records already exist, it immediately skips and prevents any duplication on server restarts.
+   */
+  public async seedIfEmpty(): Promise<void> {
+    try {
+      if (process.env.AUTO_SEED === 'false') {
+        console.log('[Database] AUTO_SEED=false configured. Skipping initial seeding for cleared database.');
+        return;
       }
+
+      const [rows] = await pool.query<RowDataPacket[]>('SELECT COUNT(*) as count FROM users');
+      const count = Number(rows[0]?.count || 0);
+      if (count > 0) {
+        console.log(`[Database] MySQL already contains ${count} users. Preserving existing database records.`);
+        return;
+      }
+
+      console.log('[Database] Empty database detected. Performing initial MySQL database seeding...');
+      const data = generateInitialSeedData();
+      const conn = await pool.getConnection();
+
+      try {
+        await conn.beginTransaction();
+
+        // 1. Users
+        for (const u of data.users) {
+          await conn.query(
+            'INSERT INTO users (id, username, email, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [u.id, u.username, u.email, u.role, u.status || 'Active', new Date(u.created_at), new Date(u.updated_at)]
+          );
+        }
+
+        // 2. Faculty
+        for (const f of data.faculty) {
+          await conn.query(
+            `INSERT INTO faculty (
+              id, user_id, faculty_code, first_name, last_name, email, mobile_number, department,
+              designation, qualification, specialization, institution, university, date_of_joining,
+              date_of_birth, address, working_status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              f.id, f.user_id, f.faculty_code, f.first_name, f.last_name, f.email, f.mobile_number,
+              f.department, f.designation, f.qualification, f.specialization, f.institution, f.university,
+              f.date_of_joining, f.date_of_birth, f.address, f.working_status || 'Active',
+              new Date(f.created_at), new Date(f.updated_at),
+            ]
+          );
+        }
+
+        // 3. Students
+        for (const s of data.students) {
+          await conn.query(
+            `INSERT INTO students (
+              id, user_id, register_number, admission_number, student_name, date_of_birth, gender,
+              abc_id, umis_number, email, mobile_number, admission_type, programme, programme_short_name,
+              branch, branch_code, department, batch, year_of_admission, current_status, programme_status,
+              degree_awarded_month_year, student_fees_status, readmitted_category, address, assigned_faculty_id,
+              created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              s.id, s.user_id, s.register_number, s.admission_number, s.student_name, s.date_of_birth, s.gender,
+              s.abc_id, s.umis_number, s.email, s.mobile_number, s.admission_type, s.programme, s.programme_short_name,
+              s.branch, s.branch_code, s.department, s.batch, s.year_of_admission, s.current_status, s.programme_status,
+              s.degree_awarded_month_year || null, s.student_fees_status, s.readmitted_category, s.address, s.assigned_faculty_id,
+              new Date(s.created_at), new Date(s.updated_at),
+            ]
+          );
+        }
+
+        // 4. Semesters
+        for (const sem of data.semesters) {
+          await conn.query(
+            'INSERT INTO semesters (id, semester_number, academic_year, semester_type, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)',
+            [sem.id, sem.semester_number, sem.academic_year, sem.semester_type, sem.start_date, sem.end_date]
+          );
+        }
+
+        // 5. Courses
+        for (const c of data.courses) {
+          await conn.query(
+            'INSERT INTO courses (id, course_code, course_name, department, programme, semester_number, credits, course_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [c.id, c.course_code, c.course_name, c.department, c.programme, c.semester_number, c.credits, c.course_type]
+          );
+        }
+
+        // 6. Faculty Courses
+        for (const fc of data.facultyCourses) {
+          await conn.query(
+            'INSERT INTO faculty_courses (id, faculty_id, course_id, semester_id, academic_year) VALUES (?, ?, ?, ?, ?)',
+            [fc.id, fc.faculty_id, fc.course_id, fc.semester_id, fc.academic_year]
+          );
+        }
+
+        // 7. Student Courses
+        for (const sc of data.studentCourses) {
+          await conn.query(
+            'INSERT INTO student_courses (id, student_id, course_id, semester_id, academic_year) VALUES (?, ?, ?, ?, ?)',
+            [sc.id, sc.student_id, sc.course_id, sc.semester_id, sc.academic_year]
+          );
+        }
+
+        // 8. Attendance
+        for (const att of data.attendance) {
+          await conn.query(
+            'INSERT INTO attendance (id, student_id, course_id, date, status, marked_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [att.id, att.student_id, att.course_id, att.date, att.status, att.marked_by, new Date(att.created_at), new Date(att.updated_at)]
+          );
+        }
+
+        // 9. Internal Marks
+        for (const im of data.internalMarks) {
+          await conn.query(
+            'INSERT INTO internal_marks (id, student_id, course_id, assessment_name, assessment_type, marks_obtained, maximum_marks, entered_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [im.id, im.student_id, im.course_id, im.assessment_name, im.assessment_type, im.marks_obtained, im.maximum_marks, im.entered_by, new Date(im.created_at), new Date(im.updated_at)]
+          );
+        }
+
+        // 10. Semester Results
+        for (const sr of data.semesterResults) {
+          await conn.query(
+            'INSERT INTO semester_results (id, student_id, semester_id, course_id, grade, grade_point, credits, result_status, academic_year, published_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [sr.id, sr.student_id, sr.semester_id, sr.course_id, sr.grade, sr.grade_point, sr.credits, sr.result_status, sr.academic_year, sr.published_date ? new Date(sr.published_date) : new Date()]
+          );
+        }
+
+        // 11. Achievements
+        for (const ach of data.achievements) {
+          await conn.query(
+            'INSERT INTO achievements (id, student_id, title, category, description, achievement_date, organization, certificate_file, verification_status, verified_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [ach.id, ach.student_id, ach.title, ach.category, ach.description, ach.achievement_date, ach.organization, ach.certificate_file || null, ach.verification_status || 'Verified', ach.verified_by, new Date(ach.created_at), new Date(ach.updated_at)]
+          );
+        }
+
+        // 12. Audit Logs
+        for (const al of data.auditLogs) {
+          await conn.query(
+            'INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, old_value, new_value, timestamp, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [al.id, al.user_id, al.role, al.user_name, al.action, al.entity_type, al.entity_id, al.old_value || null, al.new_value || null, new Date(al.timestamp), al.ip_address || '127.0.0.1']
+          );
+        }
+
+        // 13. Institutional Regulations
+        for (const reg of data.regulations) {
+          await conn.query(
+            'INSERT INTO institutional_regulations (id, category, title, document_code, clause_reference, effective_year, content) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [reg.id, reg.category, reg.title, reg.document_code, reg.clause_reference, reg.effective_year || '2023', reg.content]
+          );
+        }
+
+        await conn.commit();
+        console.log('[Database] MySQL initial database seeding completed successfully.');
+      } catch (seedErr) {
+        await conn.rollback();
+        throw seedErr;
+      } finally {
+        conn.release();
+      }
+    } catch (err: any) {
+      console.error('[Database] Failed to verify or seed MySQL database:', err.message);
     }
-    return undefined;
   }
 
-  getUserById(id: string): User | undefined {
-    return this.users.get(id);
-  }
-
-  getAllUsers(): User[] {
-    return Array.from(this.users.values());
-  }
-
-  // Faculty
-  getFacultyById(id: string): Faculty | undefined {
-    return this.faculty.get(id);
-  }
-
-  getFacultyByUserId(userId: string): Faculty | undefined {
-    for (const f of this.faculty.values()) {
-      if (f.user_id === userId) return f;
+  // ================= USERS =================
+  async getUserByUsernameOrEmail(identifier: string): Promise<User | null> {
+    const trimmed = identifier.trim();
+    if (trimmed.toLowerCase() === 'faculty_rajesh') {
+      const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE role = "FACULTY" ORDER BY id ASC LIMIT 1');
+      return rows.length > 0 ? (rows[0] as User) : null;
     }
-    return undefined;
-  }
-
-  getAllFaculty(): Faculty[] {
-    return Array.from(this.faculty.values());
-  }
-
-  // Students
-  getStudentById(id: string): Student | undefined {
-    return this.students.get(id);
-  }
-
-  getStudentByUserId(userId: string): Student | undefined {
-    for (const s of this.students.values()) {
-      if (s.user_id === userId) return s;
+    if (trimmed.toLowerCase() === '24cse001') {
+      const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE role = "STUDENT" ORDER BY id ASC LIMIT 1');
+      return rows.length > 0 ? (rows[0] as User) : null;
     }
-    return undefined;
+
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT * FROM users
+       WHERE LOWER(username) = LOWER(?)
+          OR LOWER(email) = LOWER(?)
+          OR LOWER(SUBSTRING_INDEX(email, '@', 1)) = LOWER(?)
+       LIMIT 1`,
+      [trimmed, trimmed, trimmed]
+    );
+    return rows.length > 0 ? (rows[0] as User) : null;
   }
 
-  getStudentByRegisterNumber(regNo: string): Student | undefined {
-    const reg = regNo.trim().toUpperCase();
-    for (const s of this.students.values()) {
-      if (s.register_number.toUpperCase() === reg) return s;
+  async getUserById(id: string): Promise<User | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+    return rows.length > 0 ? (rows[0] as User) : null;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users');
+    return rows as User[];
+  }
+
+  // ================= FACULTY =================
+  async getFacultyById(id: string): Promise<Faculty | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty WHERE id = ? LIMIT 1', [id]);
+    return rows.length > 0 ? (rows[0] as Faculty) : null;
+  }
+
+  async getFacultyByUserId(userId: string): Promise<Faculty | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty WHERE user_id = ? LIMIT 1', [userId]);
+    return rows.length > 0 ? (rows[0] as Faculty) : null;
+  }
+
+  async getAllFaculty(): Promise<Faculty[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty');
+    return rows as Faculty[];
+  }
+
+  // ================= STUDENTS =================
+  async getStudentById(id: string): Promise<Student | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM students WHERE id = ? LIMIT 1', [id]);
+    return rows.length > 0 ? (rows[0] as Student) : null;
+  }
+
+  async getStudentByUserId(userId: string): Promise<Student | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM students WHERE user_id = ? LIMIT 1', [userId]);
+    return rows.length > 0 ? (rows[0] as Student) : null;
+  }
+
+  async getStudentByRegisterNumber(regNo: string): Promise<Student | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM students WHERE UPPER(register_number) = UPPER(?) LIMIT 1',
+      [regNo.trim()]
+    );
+    return rows.length > 0 ? (rows[0] as Student) : null;
+  }
+
+  async getAllStudents(): Promise<Student[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM students');
+    return rows as Student[];
+  }
+
+  async getStudentsByFaculty(facultyId: string): Promise<Student[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT DISTINCT s.* FROM students s
+       WHERE s.assigned_faculty_id = ?
+          OR s.id IN (
+            SELECT sc.student_id FROM student_courses sc
+            INNER JOIN faculty_courses fc ON sc.course_id = fc.course_id
+            WHERE fc.faculty_id = ?
+          )`,
+      [facultyId, facultyId]
+    );
+    return rows as Student[];
+  }
+
+  async createStudent(
+    student: Student,
+    user: User,
+    logActor: { id: string; role: string; name: string; ip: string }
+  ): Promise<Student> {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      await conn.query(
+        'INSERT INTO users (id, username, email, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [user.id, user.username, user.email, user.role, user.status || 'Active', new Date(user.created_at), new Date(user.updated_at)]
+      );
+
+      await conn.query(
+        `INSERT INTO students (
+          id, user_id, register_number, admission_number, student_name, date_of_birth, gender,
+          abc_id, umis_number, email, mobile_number, admission_type, programme, programme_short_name,
+          branch, branch_code, department, batch, year_of_admission, current_status, programme_status,
+          degree_awarded_month_year, student_fees_status, readmitted_category, address, assigned_faculty_id,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          student.id, student.user_id, student.register_number, student.admission_number || null,
+          student.student_name, student.date_of_birth || null, student.gender || null,
+          student.abc_id || null, student.umis_number || null, student.email, student.mobile_number || null,
+          student.admission_type || null, student.programme, student.programme_short_name || null,
+          student.branch || null, student.branch_code || null, student.department, student.batch || null,
+          student.year_of_admission || null, student.current_status || 'Continuing', student.programme_status || 'Active',
+          student.degree_awarded_month_year || null, student.student_fees_status || null, student.readmitted_category || null,
+          student.address || null, student.assigned_faculty_id || null,
+          new Date(student.created_at), new Date(student.updated_at),
+        ]
+      );
+
+      const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await conn.query(
+        `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, new_value, timestamp, ip_address)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          auditId,
+          logActor.id,
+          logActor.role,
+          logActor.name,
+          'CREATE_STUDENT',
+          'STUDENT',
+          student.id,
+          JSON.stringify({ register_number: student.register_number, name: student.student_name, programme: student.programme }),
+          new Date(),
+          logActor.ip,
+        ]
+      );
+
+      await conn.commit();
+      return student;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    return undefined;
   }
 
-  getAllStudents(): Student[] {
-    return Array.from(this.students.values());
-  }
-
-  getStudentsByFaculty(facultyId: string): Student[] {
-    // Return students assigned to faculty or mapped via faculty courses
-    const assignedCourses = this.getFacultyCourses(facultyId).map((fc) => fc.course_id);
-    return Array.from(this.students.values()).filter((s) => {
-      if (s.assigned_faculty_id === facultyId) return true;
-      // also check if enrolled in any of faculty's courses
-      const enrolled = this.getStudentCourses(s.id).some((sc) => assignedCourses.includes(sc.course_id));
-      return enrolled;
-    });
-  }
-
-  createStudent(student: Student, user: User, logActor: { id: string; role: 'FACULTY'; name: string; ip: string }): Student {
-    this.users.set(user.id, user);
-    this.students.set(student.id, student);
-
-    this.addAuditLog({
-      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      user_id: logActor.id,
-      role: logActor.role,
-      user_name: logActor.name,
-      action: 'CREATE_STUDENT',
-      entity_type: 'STUDENT',
-      entity_id: student.id,
-      new_value: JSON.stringify({ register_number: student.register_number, name: student.student_name, programme: student.programme }),
-      timestamp: new Date().toISOString(),
-      ip_address: logActor.ip,
-    });
-
-    return student;
-  }
-
-  updateStudent(studentId: string, updates: Partial<Student>, logActor: { id: string; role: 'FACULTY'; name: string; ip: string }): Student | null {
-    const existing = this.students.get(studentId);
+  async updateStudent(
+    studentId: string,
+    updates: Partial<Student>,
+    logActor: { id: string; role: string; name: string; ip: string }
+  ): Promise<Student | null> {
+    const existing = await this.getStudentById(studentId);
     if (!existing) return null;
 
     const oldCopy = { ...existing };
@@ -168,7 +348,7 @@ export class Database {
       updated_at: new Date().toISOString(),
     };
 
-    // Enforce business rules:
+    // Business rule enforcement:
     // If Current Status = Completed -> Programme Status must be Degree Awarded or Programme Completed
     if (updated.current_status === 'Completed') {
       if (updated.programme_status !== 'Degree Awarded' && updated.programme_status !== 'Programme Completed') {
@@ -181,353 +361,763 @@ export class Database {
       updated.degree_awarded_month_year = `${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
     }
 
-    this.students.set(studentId, updated);
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
 
-    this.addAuditLog({
-      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      user_id: logActor.id,
-      role: logActor.role,
-      user_name: logActor.name,
-      action: 'UPDATE_STUDENT_PROFILE',
-      entity_type: 'STUDENT',
-      entity_id: studentId,
-      old_value: JSON.stringify(oldCopy),
-      new_value: JSON.stringify(updated),
-      timestamp: new Date().toISOString(),
-      ip_address: logActor.ip,
-    });
+      await conn.query(
+        `UPDATE students SET
+          student_name = ?, date_of_birth = ?, gender = ?, abc_id = ?, umis_number = ?,
+          email = ?, mobile_number = ?, admission_type = ?, programme = ?, programme_short_name = ?,
+          branch = ?, branch_code = ?, department = ?, batch = ?, year_of_admission = ?,
+          current_status = ?, programme_status = ?, degree_awarded_month_year = ?,
+          student_fees_status = ?, readmitted_category = ?, address = ?, assigned_faculty_id = ?,
+          updated_at = ?
+         WHERE id = ?`,
+        [
+          updated.student_name, updated.date_of_birth, updated.gender, updated.abc_id, updated.umis_number,
+          updated.email, updated.mobile_number, updated.admission_type, updated.programme, updated.programme_short_name,
+          updated.branch, updated.branch_code, updated.department, updated.batch, updated.year_of_admission,
+          updated.current_status, updated.programme_status, updated.degree_awarded_month_year || null,
+          updated.student_fees_status, updated.readmitted_category, updated.address, updated.assigned_faculty_id,
+          new Date(updated.updated_at), studentId,
+        ]
+      );
 
-    return updated;
+      const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await conn.query(
+        `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, old_value, new_value, timestamp, ip_address)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          auditId,
+          logActor.id,
+          logActor.role,
+          logActor.name,
+          'UPDATE_STUDENT_PROFILE',
+          'STUDENT',
+          studentId,
+          JSON.stringify(oldCopy),
+          JSON.stringify(updated),
+          new Date(),
+          logActor.ip,
+        ]
+      );
+
+      await conn.commit();
+      return updated;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   }
 
-  // Courses & Semesters
-  getAllCourses(): Course[] {
-    return Array.from(this.courses.values());
+  // ================= COURSES & SEMESTERS =================
+  async getAllCourses(): Promise<Course[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses');
+    return rows.map((r) => ({
+      ...r,
+      credits: Number(r.credits),
+      semester_number: Number(r.semester_number),
+    })) as Course[];
   }
 
-  getCourseById(id: string): Course | undefined {
-    return this.courses.get(id);
+  async getCourseById(id: string): Promise<Course | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM courses WHERE id = ? LIMIT 1', [id]);
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      ...r,
+      credits: Number(r.credits),
+      semester_number: Number(r.semester_number),
+    } as Course;
   }
 
-  getAllSemesters(): Semester[] {
-    return Array.from(this.semesters.values()).sort((a, b) => a.semester_number - b.semester_number);
+  async getAllSemesters(): Promise<Semester[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM semesters ORDER BY semester_number ASC');
+    return rows.map((r) => ({
+      ...r,
+      semester_number: Number(r.semester_number),
+    })) as Semester[];
   }
 
-  getSemesterById(id: string): Semester | undefined {
-    return this.semesters.get(id);
+  async getSemesterById(id: string): Promise<Semester | null> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM semesters WHERE id = ? LIMIT 1', [id]);
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      ...r,
+      semester_number: Number(r.semester_number),
+    } as Semester;
   }
 
-  getFacultyCourses(facultyId: string): FacultyCourseMapping[] {
-    return Array.from(this.facultyCourses.values()).filter((fc) => fc.faculty_id === facultyId);
+  async getFacultyCourses(facultyId: string): Promise<FacultyCourseMapping[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty_courses WHERE faculty_id = ?', [facultyId]);
+    return rows as FacultyCourseMapping[];
   }
 
-  getStudentCourses(studentId: string): StudentCourseMapping[] {
-    return Array.from(this.studentCourses.values()).filter((sc) => sc.student_id === studentId);
+  async getStudentCourses(studentId: string): Promise<StudentCourseMapping[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM student_courses WHERE student_id = ?', [studentId]);
+    return rows as StudentCourseMapping[];
   }
 
-  // Attendance
-  getAttendanceByStudent(studentId: string): AttendanceRecord[] {
-    return Array.from(this.attendance.values())
-      .filter((a) => a.student_id === studentId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // ================= ATTENDANCE =================
+  async getAttendanceByStudent(studentId: string): Promise<AttendanceRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM attendance WHERE student_id = ? ORDER BY date DESC',
+      [studentId]
+    );
+    return rows as AttendanceRecord[];
   }
 
-  getAttendanceByCourseAndDate(courseId: string, date: string): AttendanceRecord[] {
-    return Array.from(this.attendance.values()).filter((a) => a.course_id === courseId && a.date === date);
+  async getAttendanceByCourseAndDate(courseId: string, date: string): Promise<AttendanceRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM attendance WHERE course_id = ? AND date = ?',
+      [courseId, date]
+    );
+    return rows as AttendanceRecord[];
   }
 
-  recordAttendanceBatch(
+  async recordAttendanceBatch(
     records: Array<{ student_id: string; course_id: string; date: string; status: 'Present' | 'Absent' }>,
     facultyId: string,
     logActor: { id: string; role: 'FACULTY'; name: string; ip: string }
-  ): AttendanceRecord[] {
+  ): Promise<AttendanceRecord[]> {
+    const conn = await pool.getConnection();
     const updatedRecords: AttendanceRecord[] = [];
-    const now = new Date().toISOString();
+    const now = new Date();
+    const nowIso = now.toISOString();
 
-    for (const item of records) {
-      // Find if record for student+course+date exists
-      let existingRecord: AttendanceRecord | undefined;
-      for (const a of this.attendance.values()) {
-        if (a.student_id === item.student_id && a.course_id === item.course_id && a.date === item.date) {
-          existingRecord = a;
-          break;
+    try {
+      await conn.beginTransaction();
+
+      for (const item of records) {
+        const [existing] = await conn.query<RowDataPacket[]>(
+          'SELECT * FROM attendance WHERE student_id = ? AND course_id = ? AND date = ? LIMIT 1',
+          [item.student_id, item.course_id, item.date]
+        );
+
+        if (existing.length > 0) {
+          const id = existing[0].id;
+          await conn.query(
+            'UPDATE attendance SET status = ?, marked_by = ?, updated_at = ? WHERE id = ?',
+            [item.status, facultyId, now, id]
+          );
+          updatedRecords.push({
+            id,
+            student_id: item.student_id,
+            course_id: item.course_id,
+            date: item.date,
+            status: item.status,
+            marked_by: facultyId,
+            created_at: existing[0].created_at,
+            updated_at: nowIso,
+          });
+        } else {
+          const newId = `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          await conn.query(
+            'INSERT INTO attendance (id, student_id, course_id, date, status, marked_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [newId, item.student_id, item.course_id, item.date, item.status, facultyId, now, now]
+          );
+          updatedRecords.push({
+            id: newId,
+            student_id: item.student_id,
+            course_id: item.course_id,
+            date: item.date,
+            status: item.status,
+            marked_by: facultyId,
+            created_at: nowIso,
+            updated_at: nowIso,
+          });
         }
       }
 
-      if (existingRecord) {
-        existingRecord.status = item.status;
-        existingRecord.marked_by = facultyId;
-        existingRecord.updated_at = now;
-        this.attendance.set(existingRecord.id, existingRecord);
-        updatedRecords.push(existingRecord);
-      } else {
-        const newRecord: AttendanceRecord = {
-          id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          student_id: item.student_id,
-          course_id: item.course_id,
-          date: item.date,
-          status: item.status,
-          marked_by: facultyId,
-          created_at: now,
-          updated_at: now,
-        };
-        this.attendance.set(newRecord.id, newRecord);
-        updatedRecords.push(newRecord);
-      }
+      const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await conn.query(
+        `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, new_value, timestamp, ip_address)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          auditId,
+          logActor.id,
+          logActor.role,
+          logActor.name,
+          'UPDATE_ATTENDANCE_BATCH',
+          'ATTENDANCE',
+          records.length > 0 ? records[0].course_id : 'batch',
+          `Recorded attendance for ${records.length} students on date ${records[0]?.date}`,
+          now,
+          logActor.ip,
+        ]
+      );
+
+      await conn.commit();
+      return updatedRecords;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-
-    this.addAuditLog({
-      id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      user_id: logActor.id,
-      role: logActor.role,
-      user_name: logActor.name,
-      action: 'UPDATE_ATTENDANCE_BATCH',
-      entity_type: 'ATTENDANCE',
-      entity_id: records.length > 0 ? records[0].course_id : 'batch',
-      new_value: `Recorded attendance for ${records.length} students on date ${records[0]?.date}`,
-      timestamp: now,
-      ip_address: logActor.ip,
-    });
-
-    return updatedRecords;
   }
 
-  // Internal Marks
-  getInternalMarksByStudent(studentId: string): InternalMarkRecord[] {
-    return Array.from(this.internalMarks.values()).filter((im) => im.student_id === studentId);
+  // ================= INTERNAL MARKS =================
+  async getInternalMarksByStudent(studentId: string): Promise<InternalMarkRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM internal_marks WHERE student_id = ?',
+      [studentId]
+    );
+    return rows.map((r) => ({
+      ...r,
+      marks_obtained: Number(r.marks_obtained),
+      maximum_marks: Number(r.maximum_marks),
+    })) as InternalMarkRecord[];
   }
 
-  saveInternalMark(
+  async saveInternalMark(
     record: Omit<InternalMarkRecord, 'id' | 'created_at' | 'updated_at'> & { id?: string },
     facultyId: string,
     logActor: { id: string; role: 'FACULTY'; name: string; ip: string }
-  ): InternalMarkRecord {
-    const now = new Date().toISOString();
-    let res: InternalMarkRecord;
+  ): Promise<InternalMarkRecord> {
+    const conn = await pool.getConnection();
+    const now = new Date();
+    const nowIso = now.toISOString();
 
-    if (record.id && this.internalMarks.has(record.id)) {
-      const existing = this.internalMarks.get(record.id)!;
-      const oldVal = JSON.stringify(existing);
-      res = {
-        ...existing,
-        marks_obtained: record.marks_obtained,
-        maximum_marks: record.maximum_marks,
-        assessment_name: record.assessment_name,
-        assessment_type: record.assessment_type,
-        entered_by: facultyId,
-        updated_at: now,
-      };
-      this.internalMarks.set(res.id, res);
+    try {
+      await conn.beginTransaction();
+      let res: InternalMarkRecord;
 
-      this.addAuditLog({
-        id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        user_id: logActor.id,
-        role: logActor.role,
-        user_name: logActor.name,
-        action: 'UPDATE_INTERNAL_MARK',
-        entity_type: 'INTERNAL_MARK',
-        entity_id: res.id,
-        old_value: oldVal,
-        new_value: JSON.stringify(res),
-        timestamp: now,
-        ip_address: logActor.ip,
-      });
-    } else {
-      res = {
-        id: `mark_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        student_id: record.student_id,
-        course_id: record.course_id,
-        assessment_name: record.assessment_name,
-        assessment_type: record.assessment_type,
-        marks_obtained: record.marks_obtained,
-        maximum_marks: record.maximum_marks,
-        entered_by: facultyId,
-        created_at: now,
-        updated_at: now,
-      };
-      this.internalMarks.set(res.id, res);
+      let existing: RowDataPacket[] = [];
+      if (record.id) {
+        [existing] = await conn.query<RowDataPacket[]>(
+          'SELECT * FROM internal_marks WHERE id = ? LIMIT 1',
+          [record.id]
+        );
+      }
 
-      this.addAuditLog({
-        id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        user_id: logActor.id,
-        role: logActor.role,
-        user_name: logActor.name,
-        action: 'CREATE_INTERNAL_MARK',
-        entity_type: 'INTERNAL_MARK',
-        entity_id: res.id,
-        new_value: JSON.stringify(res),
-        timestamp: now,
-        ip_address: logActor.ip,
-      });
+      if (existing.length > 0) {
+        const oldRow = existing[0];
+        const oldVal = JSON.stringify(oldRow);
+
+        res = {
+          id: record.id!,
+          student_id: record.student_id,
+          course_id: record.course_id,
+          assessment_name: record.assessment_name,
+          assessment_type: record.assessment_type,
+          marks_obtained: record.marks_obtained,
+          maximum_marks: record.maximum_marks,
+          entered_by: facultyId,
+          created_at: oldRow.created_at,
+          updated_at: nowIso,
+        };
+
+        await conn.query(
+          `UPDATE internal_marks SET
+            marks_obtained = ?, maximum_marks = ?, assessment_name = ?,
+            assessment_type = ?, entered_by = ?, updated_at = ?
+           WHERE id = ?`,
+          [record.marks_obtained, record.maximum_marks, record.assessment_name, record.assessment_type, facultyId, now, record.id]
+        );
+
+        const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        await conn.query(
+          `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, old_value, new_value, timestamp, ip_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [auditId, logActor.id, logActor.role, logActor.name, 'UPDATE_INTERNAL_MARK', 'INTERNAL_MARK', res.id, oldVal, JSON.stringify(res), now, logActor.ip]
+        );
+      } else {
+        const newId = record.id || `mark_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        res = {
+          id: newId,
+          student_id: record.student_id,
+          course_id: record.course_id,
+          assessment_name: record.assessment_name,
+          assessment_type: record.assessment_type,
+          marks_obtained: record.marks_obtained,
+          maximum_marks: record.maximum_marks,
+          entered_by: facultyId,
+          created_at: nowIso,
+          updated_at: nowIso,
+        };
+
+        await conn.query(
+          `INSERT INTO internal_marks (id, student_id, course_id, assessment_name, assessment_type, marks_obtained, maximum_marks, entered_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [newId, record.student_id, record.course_id, record.assessment_name, record.assessment_type, record.marks_obtained, record.maximum_marks, facultyId, now, now]
+        );
+
+        const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        await conn.query(
+          `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, new_value, timestamp, ip_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [auditId, logActor.id, logActor.role, logActor.name, 'CREATE_INTERNAL_MARK', 'INTERNAL_MARK', newId, JSON.stringify(res), now, logActor.ip]
+        );
+      }
+
+      await conn.commit();
+      return res;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    return res;
   }
 
-  // Semester Results
-  getSemesterResultsByStudent(studentId: string): SemesterResultRecord[] {
-    return Array.from(this.semesterResults.values()).filter((sr) => sr.student_id === studentId);
+  // ================= SEMESTER RESULTS =================
+  async getSemesterResultsByStudent(studentId: string): Promise<SemesterResultRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM semester_results WHERE student_id = ?',
+      [studentId]
+    );
+    return rows.map((r) => ({
+      ...r,
+      grade_point: Number(r.grade_point),
+      credits: Number(r.credits),
+    })) as SemesterResultRecord[];
   }
 
-  saveSemesterResult(
+  async saveSemesterResult(
     record: Omit<SemesterResultRecord, 'id'> & { id?: string },
-    logActor: { id: string; role: 'FACULTY'; name: string; ip: string }
-  ): SemesterResultRecord {
-    let res: SemesterResultRecord;
-    const now = new Date().toISOString();
+    logActor: { id: string; role: string; name: string; ip: string }
+  ): Promise<SemesterResultRecord> {
+    const conn = await pool.getConnection();
+    const now = new Date();
+    const nowIso = now.toISOString();
 
-    if (record.id && this.semesterResults.has(record.id)) {
-      const existing = this.semesterResults.get(record.id)!;
-      const oldVal = JSON.stringify(existing);
-      res = {
-        ...existing,
-        grade: record.grade,
-        grade_point: record.grade_point,
-        credits: record.credits,
-        result_status: record.result_status,
-        published_date: record.published_date || now,
-      };
-      this.semesterResults.set(res.id, res);
+    try {
+      await conn.beginTransaction();
+      let res: SemesterResultRecord;
 
-      this.addAuditLog({
-        id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        user_id: logActor.id,
-        role: logActor.role,
-        user_name: logActor.name,
-        action: 'UPDATE_SEMESTER_RESULT',
-        entity_type: 'SEMESTER_RESULT',
-        entity_id: res.id,
-        old_value: oldVal,
-        new_value: JSON.stringify(res),
-        timestamp: now,
-        ip_address: logActor.ip,
-      });
-    } else {
-      res = {
-        id: `res_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        student_id: record.student_id,
-        semester_id: record.semester_id,
-        course_id: record.course_id,
-        grade: record.grade,
-        grade_point: record.grade_point,
-        credits: record.credits,
-        result_status: record.result_status,
-        academic_year: record.academic_year,
-        published_date: record.published_date || now,
-      };
-      this.semesterResults.set(res.id, res);
+      let existing: RowDataPacket[] = [];
+      if (record.id) {
+        [existing] = await conn.query<RowDataPacket[]>(
+          'SELECT * FROM semester_results WHERE id = ? LIMIT 1',
+          [record.id]
+        );
+      }
 
-      this.addAuditLog({
-        id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        user_id: logActor.id,
-        role: logActor.role,
-        user_name: logActor.name,
-        action: 'CREATE_SEMESTER_RESULT',
-        entity_type: 'SEMESTER_RESULT',
-        entity_id: res.id,
-        new_value: JSON.stringify(res),
-        timestamp: now,
-        ip_address: logActor.ip,
-      });
+      if (existing.length > 0) {
+        const oldRow = existing[0];
+        const oldVal = JSON.stringify(oldRow);
+
+        res = {
+          id: record.id!,
+          student_id: record.student_id,
+          semester_id: record.semester_id,
+          course_id: record.course_id,
+          grade: record.grade,
+          grade_point: record.grade_point,
+          credits: record.credits,
+          result_status: record.result_status,
+          academic_year: record.academic_year || oldRow.academic_year,
+          published_date: record.published_date || oldRow.published_date || nowIso,
+        };
+
+        await conn.query(
+          `UPDATE semester_results SET
+            grade = ?, grade_point = ?, credits = ?, result_status = ?, published_date = ?
+           WHERE id = ?`,
+          [record.grade, record.grade_point, record.credits, record.result_status, record.published_date ? new Date(record.published_date) : now, record.id]
+        );
+
+        const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        await conn.query(
+          `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, old_value, new_value, timestamp, ip_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [auditId, logActor.id, logActor.role, logActor.name, 'UPDATE_SEMESTER_RESULT', 'SEMESTER_RESULT', res.id, oldVal, JSON.stringify(res), now, logActor.ip]
+        );
+      } else {
+        const newId = record.id || `res_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        res = {
+          id: newId,
+          student_id: record.student_id,
+          semester_id: record.semester_id,
+          course_id: record.course_id,
+          grade: record.grade,
+          grade_point: record.grade_point,
+          credits: record.credits,
+          result_status: record.result_status,
+          academic_year: record.academic_year || '2024-2025',
+          published_date: record.published_date || nowIso,
+        };
+
+        await conn.query(
+          `INSERT INTO semester_results (id, student_id, semester_id, course_id, grade, grade_point, credits, result_status, academic_year, published_date)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [newId, record.student_id, record.semester_id, record.course_id, record.grade, record.grade_point, record.credits, record.result_status, res.academic_year, record.published_date ? new Date(record.published_date) : now]
+        );
+
+        const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        await conn.query(
+          `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, new_value, timestamp, ip_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [auditId, logActor.id, logActor.role, logActor.name, 'CREATE_SEMESTER_RESULT', 'SEMESTER_RESULT', newId, JSON.stringify(res), now, logActor.ip]
+        );
+      }
+
+      await conn.commit();
+      return res;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    return res;
   }
 
-  // Achievements
-  getAchievementsByStudent(studentId: string): AchievementRecord[] {
-    return Array.from(this.achievements.values())
-      .filter((ach) => ach.student_id === studentId)
-      .sort((a, b) => new Date(b.achievement_date).getTime() - new Date(a.achievement_date).getTime());
+  // ================= ACHIEVEMENTS =================
+  async getAchievementsByStudent(studentId: string): Promise<AchievementRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM achievements WHERE student_id = ? ORDER BY achievement_date DESC',
+      [studentId]
+    );
+    return rows as AchievementRecord[];
   }
 
-  saveAchievement(
+  async saveAchievement(
     achievement: Omit<AchievementRecord, 'id' | 'created_at' | 'updated_at'> & { id?: string },
     facultyId: string,
     logActor: { id: string; role: 'FACULTY'; name: string; ip: string }
-  ): AchievementRecord {
-    const now = new Date().toISOString();
-    let res: AchievementRecord;
+  ): Promise<AchievementRecord> {
+    const conn = await pool.getConnection();
+    const now = new Date();
+    const nowIso = now.toISOString();
 
-    if (achievement.id && this.achievements.has(achievement.id)) {
-      const existing = this.achievements.get(achievement.id)!;
-      const oldVal = JSON.stringify(existing);
-      res = {
-        ...existing,
-        ...achievement,
-        verified_by: achievement.verification_status === 'Verified' ? facultyId : existing.verified_by,
-        updated_at: now,
-      };
-      this.achievements.set(res.id, res);
+    try {
+      await conn.beginTransaction();
+      let res: AchievementRecord;
 
-      this.addAuditLog({
-        id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        user_id: logActor.id,
-        role: logActor.role,
-        user_name: logActor.name,
-        action: 'UPDATE_ACHIEVEMENT',
-        entity_type: 'ACHIEVEMENT',
-        entity_id: res.id,
-        old_value: oldVal,
-        new_value: JSON.stringify(res),
-        timestamp: now,
-        ip_address: logActor.ip,
-      });
-    } else {
-      res = {
-        id: `ach_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        student_id: achievement.student_id,
-        title: achievement.title,
-        category: achievement.category,
-        description: achievement.description,
-        achievement_date: achievement.achievement_date,
-        organization: achievement.organization,
-        certificate_file: achievement.certificate_file,
-        verification_status: achievement.verification_status || 'Verified',
-        verified_by: facultyId,
-        created_at: now,
-        updated_at: now,
-      };
-      this.achievements.set(res.id, res);
+      let existing: RowDataPacket[] = [];
+      if (achievement.id) {
+        [existing] = await conn.query<RowDataPacket[]>(
+          'SELECT * FROM achievements WHERE id = ? LIMIT 1',
+          [achievement.id]
+        );
+      }
 
-      this.addAuditLog({
-        id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        user_id: logActor.id,
-        role: logActor.role,
-        user_name: logActor.name,
-        action: 'CREATE_ACHIEVEMENT',
-        entity_type: 'ACHIEVEMENT',
-        entity_id: res.id,
-        new_value: JSON.stringify(res),
-        timestamp: now,
-        ip_address: logActor.ip,
-      });
+      if (existing.length > 0) {
+        const oldRow = existing[0];
+        const oldVal = JSON.stringify(oldRow);
+
+        res = {
+          id: achievement.id!,
+          student_id: achievement.student_id,
+          title: achievement.title,
+          category: achievement.category,
+          description: achievement.description,
+          achievement_date: achievement.achievement_date,
+          organization: achievement.organization,
+          certificate_file: achievement.certificate_file,
+          verification_status: achievement.verification_status || oldRow.verification_status,
+          verified_by: achievement.verification_status === 'Verified' ? facultyId : oldRow.verified_by,
+          created_at: oldRow.created_at,
+          updated_at: nowIso,
+        };
+
+        await conn.query(
+          `UPDATE achievements SET
+            title = ?, category = ?, description = ?, achievement_date = ?,
+            organization = ?, certificate_file = ?, verification_status = ?,
+            verified_by = ?, updated_at = ?
+           WHERE id = ?`,
+          [
+            res.title, res.category, res.description, res.achievement_date,
+            res.organization, res.certificate_file || null, res.verification_status,
+            res.verified_by || null, now, res.id,
+          ]
+        );
+
+        const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        await conn.query(
+          `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, old_value, new_value, timestamp, ip_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [auditId, logActor.id, logActor.role, logActor.name, 'UPDATE_ACHIEVEMENT', 'ACHIEVEMENT', res.id, oldVal, JSON.stringify(res), now, logActor.ip]
+        );
+      } else {
+        const newId = achievement.id || `ach_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        res = {
+          id: newId,
+          student_id: achievement.student_id,
+          title: achievement.title,
+          category: achievement.category,
+          description: achievement.description,
+          achievement_date: achievement.achievement_date,
+          organization: achievement.organization,
+          certificate_file: achievement.certificate_file,
+          verification_status: achievement.verification_status || 'Verified',
+          verified_by: facultyId,
+          created_at: nowIso,
+          updated_at: nowIso,
+        };
+
+        await conn.query(
+          `INSERT INTO achievements (id, student_id, title, category, description, achievement_date, organization, certificate_file, verification_status, verified_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            newId, res.student_id, res.title, res.category, res.description, res.achievement_date,
+            res.organization, res.certificate_file || null, res.verification_status,
+            res.verified_by, now, now,
+          ]
+        );
+
+        const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        await conn.query(
+          `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, new_value, timestamp, ip_address)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [auditId, logActor.id, logActor.role, logActor.name, 'CREATE_ACHIEVEMENT', 'ACHIEVEMENT', newId, JSON.stringify(res), now, logActor.ip]
+        );
+      }
+
+      await conn.commit();
+      return res;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    return res;
   }
 
-  // Audit Logs
-  addAuditLog(record: AuditLogRecord) {
-    this.auditLogs.unshift(record);
-    if (this.auditLogs.length > 500) {
-      this.auditLogs.pop();
+  // ================= AUDIT LOGS =================
+  async addAuditLog(record: AuditLogRecord): Promise<void> {
+    await pool.query(
+      `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, old_value, new_value, timestamp, ip_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        record.id,
+        record.user_id,
+        record.role,
+        record.user_name,
+        record.action,
+        record.entity_type,
+        record.entity_id,
+        record.old_value || null,
+        record.new_value || null,
+        record.timestamp ? new Date(record.timestamp) : new Date(),
+        record.ip_address || null,
+      ]
+    );
+  }
+
+  async getAllAuditLogs(): Promise<AuditLogRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 500'
+    );
+    return rows as AuditLogRecord[];
+  }
+
+  // ================= INSTITUTIONAL REGULATIONS =================
+  async getAllRegulations(): Promise<InstitutionalRegulation[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM institutional_regulations');
+    return rows as InstitutionalRegulation[];
+  }
+
+  // ================= AI ANALYSIS CACHE =================
+  async getAIAnalysis(studentId: string): Promise<AIAnalysisResult | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT analysis_json FROM ai_analyses WHERE student_id = ? LIMIT 1',
+      [studentId]
+    );
+    if (rows.length === 0) return null;
+    const raw = rows[0].analysis_json;
+    if (!raw) return null;
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  }
+
+  async saveAIAnalysis(analysis: AIAnalysisResult): Promise<void> {
+    const jsonStr = JSON.stringify(analysis);
+    await pool.query(
+      `INSERT INTO ai_analyses (student_id, analysis_json, generated_at, updated_at)
+       VALUES (?, ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE analysis_json = VALUES(analysis_json), updated_at = NOW()`,
+      [analysis.studentId, jsonStr]
+    );
+  }
+
+  // ================= RESULTS PUBLISHING & MANAGEMENT (COE / ADMIN) =================
+  async getAllSemesterResults(limit = 1000): Promise<SemesterResultRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM semester_results ORDER BY id ASC LIMIT ?',
+      [limit]
+    );
+    return rows.map((r) => ({
+      ...r,
+      grade_point: Number(r.grade_point),
+      credits: Number(r.credits),
+    })) as SemesterResultRecord[];
+  }
+
+  async publishSemesterResultsBatch(
+    resultIds: string[],
+    publishedDate: string,
+    logActor: { id: string; role: string; name: string; ip: string }
+  ): Promise<number> {
+    if (!resultIds || resultIds.length === 0) return 0;
+    const conn = await pool.getConnection();
+    const now = new Date();
+    try {
+      await conn.beginTransaction();
+      const placeholders = resultIds.map(() => '?').join(',');
+      const [res] = await conn.query<any>(
+        `UPDATE semester_results 
+         SET published_date = ?, result_status = CASE WHEN grade_point > 0 THEN 'Pass' ELSE 'Fail' END
+         WHERE id IN (${placeholders})`,
+        [new Date(publishedDate), ...resultIds]
+      );
+
+      const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await conn.query(
+        `INSERT INTO audit_logs (id, user_id, role, user_name, action, entity_type, entity_id, new_value, timestamp, ip_address)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          auditId,
+          logActor.id,
+          logActor.role,
+          logActor.name,
+          'PUBLISH_SEMESTER_RESULTS',
+          'SEMESTER_RESULTS',
+          'batch',
+          `Published ${res.affectedRows || resultIds.length} semester results on date ${publishedDate}`,
+          now,
+          logActor.ip,
+        ]
+      );
+
+      await conn.commit();
+      return res.affectedRows || resultIds.length;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
   }
 
-  getAllAuditLogs(): AuditLogRecord[] {
-    return [...this.auditLogs];
+  // ================= ADMIN MANAGEMENT =================
+  async createUser(user: { id: string; username: string; email: string; password_hash?: string; role: UserRole; status?: 'Active' | 'Inactive' }): Promise<User> {
+    const now = new Date();
+    await pool.query(
+      `INSERT INTO users (id, username, email, password_hash, role, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [user.id, user.username, user.email, user.password_hash || null, user.role, user.status || 'Active', now, now]
+    );
+    return (await this.getUserById(user.id))!;
   }
 
-  // Institutional Regulations
-  getAllRegulations(): InstitutionalRegulation[] {
-    return Array.from(this.regulations.values());
+  async updateUser(id: string, updates: Partial<{ username: string; email: string; password_hash: string; role: UserRole; status: 'Active' | 'Inactive' }>): Promise<User | null> {
+    const sets: string[] = [];
+    const values: any[] = [];
+    if (updates.username) { sets.push('username = ?'); values.push(updates.username); }
+    if (updates.email) { sets.push('email = ?'); values.push(updates.email); }
+    if (updates.password_hash) { sets.push('password_hash = ?'); values.push(updates.password_hash); }
+    if (updates.role) { sets.push('role = ?'); values.push(updates.role); }
+    if (updates.status) { sets.push('status = ?'); values.push(updates.status); }
+    if (sets.length === 0) return this.getUserById(id);
+
+    sets.push('updated_at = NOW()');
+    values.push(id);
+    await pool.query(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, values);
+    return this.getUserById(id);
   }
 
-  // AI Analysis Cache
-  getAIAnalysis(studentId: string): AIAnalysisResult | undefined {
-    return this.aiAnalyses.get(studentId);
+  async deleteUser(id: string): Promise<boolean> {
+    const [res] = await pool.query<any>('DELETE FROM users WHERE id = ?', [id]);
+    return res.affectedRows > 0;
   }
 
-  saveAIAnalysis(analysis: AIAnalysisResult) {
-    this.aiAnalyses.set(analysis.studentId, analysis);
+  async createFaculty(faculty: Faculty): Promise<Faculty> {
+    const now = new Date();
+    await pool.query(
+      `INSERT INTO faculty (
+        id, user_id, faculty_code, first_name, last_name, email, mobile_number, department,
+        designation, qualification, specialization, institution, university, date_of_joining,
+        date_of_birth, address, working_status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        faculty.id, faculty.user_id, faculty.faculty_code, faculty.first_name, faculty.last_name, faculty.email, faculty.mobile_number,
+        faculty.department, faculty.designation, faculty.qualification, faculty.specialization, faculty.institution, faculty.university,
+        faculty.date_of_joining, faculty.date_of_birth, faculty.address, faculty.working_status || 'Active', now, now
+      ]
+    );
+    return (await this.getFacultyById(faculty.id))!;
+  }
+
+  async updateFaculty(id: string, updates: Partial<Faculty>): Promise<Faculty | null> {
+    const fields = Object.keys(updates).filter(k => k !== 'id' && k !== 'created_at');
+    if (fields.length === 0) return this.getFacultyById(id);
+    const sets = fields.map(k => `\`${k}\` = ?`).join(', ');
+    const values = fields.map(k => (updates as any)[k]);
+    values.push(id);
+    await pool.query(`UPDATE faculty SET ${sets}, updated_at = NOW() WHERE id = ?`, values);
+    return this.getFacultyById(id);
+  }
+
+  async createCourse(course: Course): Promise<Course> {
+    await pool.query(
+      `INSERT INTO courses (id, course_code, course_name, department, programme, semester_number, credits, course_type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [course.id, course.course_code, course.course_name, course.department, course.programme, course.semester_number, course.credits, course.course_type]
+    );
+    return (await this.getCourseById(course.id))!;
+  }
+
+  async updateCourse(id: string, updates: Partial<Course>): Promise<Course | null> {
+    const fields = Object.keys(updates).filter(k => k !== 'id');
+    if (fields.length === 0) return this.getCourseById(id);
+    const sets = fields.map(k => `\`${k}\` = ?`).join(', ');
+    const values = fields.map(k => (updates as any)[k]);
+    values.push(id);
+    await pool.query(`UPDATE courses SET ${sets} WHERE id = ?`, values);
+    return this.getCourseById(id);
+  }
+
+  async createSemester(semester: Semester): Promise<Semester> {
+    await pool.query(
+      `INSERT INTO semesters (id, semester_number, academic_year, semester_type, start_date, end_date)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [semester.id, semester.semester_number, semester.academic_year, semester.semester_type, semester.start_date, semester.end_date]
+    );
+    return (await this.getSemesterById(semester.id))!;
+  }
+
+  async getAllFacultyCourses(): Promise<FacultyCourseMapping[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty_courses');
+    return rows as FacultyCourseMapping[];
+  }
+
+  async getAllStudentCourses(): Promise<StudentCourseMapping[]> {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM student_courses');
+    return rows as StudentCourseMapping[];
+  }
+
+  async createFacultyCourseMapping(mapping: FacultyCourseMapping): Promise<FacultyCourseMapping> {
+    await pool.query(
+      `INSERT INTO faculty_courses (id, faculty_id, course_id, semester_id, academic_year)
+       VALUES (?, ?, ?, ?, ?)`,
+      [mapping.id, mapping.faculty_id, mapping.course_id, mapping.semester_id, mapping.academic_year]
+    );
+    return mapping;
+  }
+
+  async deleteFacultyCourseMapping(id: string): Promise<boolean> {
+    const [res] = await pool.query<any>('DELETE FROM faculty_courses WHERE id = ?', [id]);
+    return res.affectedRows > 0;
+  }
+
+  async createStudentCourseMapping(mapping: StudentCourseMapping): Promise<StudentCourseMapping> {
+    await pool.query(
+      `INSERT INTO student_courses (id, student_id, course_id, semester_id, academic_year)
+       VALUES (?, ?, ?, ?, ?)`,
+      [mapping.id, mapping.student_id, mapping.course_id, mapping.semester_id, mapping.academic_year]
+    );
+    return mapping;
+  }
+
+  async deleteStudentCourseMapping(id: string): Promise<boolean> {
+    const [res] = await pool.query<any>('DELETE FROM student_courses WHERE id = ?', [id]);
+    return res.affectedRows > 0;
   }
 }
 

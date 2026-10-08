@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.js';
 import { api } from '../../services/api.js';
-import { Student } from '../../types/index.js';
 import { MetricCard } from '../common/MetricCard.js';
-import { RiskBadge, PerformanceBadge } from '../common/RiskBadge.js';
+import { RiskBadge } from '../common/RiskBadge.js';
 import {
   Users,
   AlertTriangle,
   AlertOctagon,
-  Award,
-  CheckCircle2,
   CalendarCheck,
   TrendingUp,
   Sparkles,
   ArrowRight,
   ClipboardList,
   GraduationCap,
-  FileSpreadsheet,
 } from 'lucide-react';
 import {
   BarChart,
@@ -29,7 +25,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
 
 interface FacultyDashboardProps {
@@ -39,7 +34,7 @@ interface FacultyDashboardProps {
 export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
-  const [report, setReport] = useState<any | null>(null);
+  const [, setReport] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,7 +51,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -79,28 +74,26 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
       ? Math.round(students.reduce((acc, s) => acc + (s.attendancePercentage || 0), 0) / totalStudents)
       : 0;
 
-  // Chart data for Risk distribution
   const riskData = [
-    { name: 'Low Risk (Safe)', value: lowRiskStudents.length, color: '#10b981' },
-    { name: 'Medium Risk', value: mediumRiskStudents.length, color: '#f59e0b' },
-    { name: 'High Risk (Alert)', value: highRiskStudents.length, color: '#ef4444' },
+    { name: 'Low Risk', value: lowRiskStudents.length, color: '#3F7D58' },
+    { name: 'Medium Risk', value: mediumRiskStudents.length, color: '#B7791F' },
+    { name: 'High Risk', value: highRiskStudents.length, color: '#B94A48' },
   ];
 
-  // CGPA bracket distribution
   const cgpaDistribution = [
     { bracket: '9.0 - 10.0', count: students.filter((s) => s.cgpa >= 9.0).length },
     { bracket: '8.0 - 8.99', count: students.filter((s) => s.cgpa >= 8.0 && s.cgpa < 9.0).length },
     { bracket: '7.0 - 7.99', count: students.filter((s) => s.cgpa >= 7.0 && s.cgpa < 8.0).length },
     { bracket: '6.0 - 6.99', count: students.filter((s) => s.cgpa >= 6.0 && s.cgpa < 7.0).length },
-    { bracket: '< 6.0 (Arrears/Low)', count: students.filter((s) => s.cgpa < 6.0).length },
+    { bracket: '< 6.0', count: students.filter((s) => s.cgpa < 6.0).length },
   ];
 
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl text-white p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-[#1E3A5F] border border-[#16304F] rounded-2xl text-white p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-slate-300 text-xs font-semibold uppercase tracking-wider mb-1">
             <span>Faculty Academic Administration Portal</span>
           </div>
           <h1 className="text-2xl font-bold text-white">
@@ -114,24 +107,24 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
         <div className="flex items-center gap-2">
           <button
             onClick={() => onNavigate('attendance')}
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition flex items-center gap-1.5"
           >
             <CalendarCheck className="w-4 h-4" />
             <span>Mark Attendance</span>
           </button>
           <button
             onClick={() => onNavigate('marks')}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-semibold transition flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition flex items-center gap-1.5"
           >
             <ClipboardList className="w-4 h-4" />
-            <span>Enter CIA Marks</span>
+            <span>Enter Marks</span>
           </button>
           <button
             onClick={() => onNavigate('ai-insights')}
-            className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition flex items-center gap-1.5"
           >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>AI Advisor</span>
+            <Sparkles className="w-4 h-4 text-slate-300" />
+            <span>Academic Analytics</span>
           </button>
         </div>
       </div>
@@ -150,7 +143,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
           value={`${avgCGPA} / 10`}
           subtitle="Overall academic standing"
           icon={GraduationCap}
-          accentColor="purple"
+          accentColor="blue"
         />
         <MetricCard
           title="Average Attendance"
@@ -177,7 +170,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
               <h2 className="font-bold text-slate-900 text-base">Cohort CGPA Grade Distribution</h2>
               <p className="text-xs text-slate-500">Number of students within respective grade ranges</p>
             </div>
-            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
+            <span className="text-xs font-bold text-[#1E3A5F] bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
               Mean: {avgCGPA}
             </span>
           </div>
@@ -186,13 +179,13 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={cgpaDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="bracket" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={11} allowDecimals={false} tickLine={false} />
+                <XAxis dataKey="bracket" stroke="#64748b" fontSize={11} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} allowDecimals={false} tickLine={false} />
                 <Tooltip
                   cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ backgroundColor: '#1e293b', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#1E293B', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '12px' }}
                 />
-                <Bar dataKey="count" name="Students" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" name="Students" fill="#1E3A5F" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -221,29 +214,29 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '12px' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#1E293B', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
           <div className="space-y-1.5 text-xs">
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50 text-emerald-900 font-medium">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 text-[#3F7D58] border border-emerald-100 font-medium">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3F7D58]" />
                 <span>Low Risk (Safe)</span>
               </div>
               <span className="font-bold">{lowRiskStudents.length}</span>
             </div>
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-amber-50 text-amber-900 font-medium">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-amber-50 text-[#B7791F] border border-amber-100 font-medium">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#B7791F]" />
                 <span>Medium Risk</span>
               </div>
               <span className="font-bold">{mediumRiskStudents.length}</span>
             </div>
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-rose-50 text-rose-900 font-medium">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-red-50 text-[#B94A48] border border-red-100 font-medium">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#B94A48]" />
                 <span>High Risk (Intervention Needed)</span>
               </div>
               <span className="font-bold">{highRiskStudents.length}</span>
@@ -257,7 +250,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-500" />
+              <AlertTriangle className="w-4 h-4 text-[#B94A48]" />
               <span>Priority Remedial Watchlist & Academic Interventions</span>
             </h2>
             <p className="text-xs text-slate-500">
@@ -266,7 +259,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
           </div>
           <button
             onClick={() => onNavigate('students')}
-            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 self-start sm:self-auto"
+            className="text-xs font-semibold text-[#1E3A5F] hover:text-[#16304F] flex items-center gap-1 self-start sm:self-auto"
           >
             <span>View Full Roster ({totalStudents})</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -275,7 +268,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3">Register No.</th>
                 <th className="px-5 py-3">Student Name</th>
@@ -292,7 +285,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
                   .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i)
                   .map((s) => (
                     <tr key={s.id} className="hover:bg-slate-50/70 transition">
-                      <td className="px-5 py-3.5 font-mono font-bold text-indigo-700">{s.register_number}</td>
+                      <td className="px-5 py-3.5 font-mono font-bold text-[#1E3A5F]">{s.register_number}</td>
                       <td className="px-5 py-3.5 font-medium text-slate-900">{s.student_name}</td>
                       <td className="px-5 py-3.5 text-center font-mono font-bold text-slate-900">
                         {s.cgpa ? s.cgpa.toFixed(2) : '0.00'}
@@ -300,7 +293,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
                       <td className="px-5 py-3.5 text-center">
                         <span
                           className={`font-semibold ${
-                            s.attendancePercentage >= 75 ? 'text-slate-800' : 'text-rose-600 font-bold'
+                            s.attendancePercentage >= 75 ? 'text-slate-800' : 'text-[#B94A48] font-bold'
                           }`}
                         >
                           {s.attendancePercentage}%
@@ -308,10 +301,10 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
                       </td>
                       <td className="px-5 py-3.5 text-center">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${
                             s.currentArrears === 0
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-rose-100 text-rose-800'
+                              ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                              : 'bg-red-50 text-[#B94A48] border-red-200'
                           }`}
                         >
                           {s.currentArrears} Arrear(s)
@@ -324,16 +317,16 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => onNavigate('academic-progress', s.id)}
-                            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition"
+                            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-[#1E3A5F] border border-slate-200 font-medium text-[11px] transition"
                           >
                             Progress Dossier
                           </button>
                           <button
                             onClick={() => onNavigate('ai-insights', s.id)}
-                            className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-[11px] transition flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium text-[11px] transition flex items-center gap-1"
                           >
-                            <Sparkles className="w-3 h-3 text-purple-600" />
-                            <span>AI Diagnostic</span>
+                            <Sparkles className="w-3 h-3 text-slate-500" />
+                            <span>Analytics</span>
                           </button>
                         </div>
                       </td>

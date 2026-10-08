@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext.js';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth, getDashboardPath } from './context/AuthContext.js';
 import { LoginPage } from './components/auth/LoginPage.js';
 import { Navbar } from './components/layout/Navbar.js';
 import { Sidebar } from './components/layout/Sidebar.js';
@@ -28,17 +28,56 @@ import { FacultyReportsView } from './components/faculty/FacultyReportsView.js';
 import { FacultyAuditLogsView } from './components/faculty/FacultyAuditLogsView.js';
 import { ProfileView } from './components/common/ProfileView.js';
 
+// COE & Admin Views
+import { COEDashboard } from './components/coe/COEDashboard.js';
+import { AdminDashboard } from './components/admin/AdminDashboard.js';
+
 const MainLayout: React.FC = () => {
   const { user, role, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [drilldownStudentId, setDrilldownStudentId] = useState<string | undefined>(undefined);
+  const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname);
+
+  // Sync URL changes and popstate events
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const path = window.location.pathname;
+      setCurrentPath(path);
+
+      // Extract sub-tab if specified (e.g. /student/attendance -> attendance)
+      const segments = path.split('/').filter(Boolean);
+      if (segments.length >= 2) {
+        setActiveTab(segments[1]);
+      } else {
+        setActiveTab('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
+
+  // Enforce role-based URL redirection
+  useEffect(() => {
+    if (!loading && user && role) {
+      const expectedPrefix = `/${role.toLowerCase()}`;
+      const path = window.location.pathname;
+
+      if (path === '/' || path === '/login' || !path.startsWith(expectedPrefix)) {
+        const target = getDashboardPath(role);
+        window.history.replaceState({}, '', target);
+        setCurrentPath(target);
+        setActiveTab('dashboard');
+      }
+    }
+  }, [loading, user, role]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-400 font-medium">Authenticating ERP session...</p>
+          <div className="w-10 h-10 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-slate-500 font-medium">Authenticating ERP session...</p>
         </div>
       </div>
     );
@@ -48,24 +87,58 @@ const MainLayout: React.FC = () => {
     return <LoginPage />;
   }
 
-  const handleFacultyNavigation = (tab: string, studentId?: string) => {
+  const handleTabSelect = (tab: string) => {
     setActiveTab(tab);
+    if (role) {
+      const newPath = `/${role.toLowerCase()}/${tab}`;
+      window.history.pushState({}, '', newPath);
+      setCurrentPath(newPath);
+    }
+  };
+
+  const handleFacultyNavigation = (tab: string, studentId?: string) => {
+    handleTabSelect(tab);
     if (studentId) {
       setDrilldownStudentId(studentId);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col antialiased text-slate-900 font-sans">
-      {/* Sticky Top Navbar with Quick Switcher & User Profile */}
-      <Navbar onSelectTab={setActiveTab} />
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col antialiased text-slate-900 font-sans">
+      {/* Sticky Top Navbar */}
+      <Navbar onSelectTab={handleTabSelect} />
 
       {/* Body: Sidebar + Main Content Container */}
       <div className="flex-1 flex flex-row overflow-hidden">
-        <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
+        <Sidebar activeTab={activeTab} onSelectTab={handleTabSelect} />
 
         <main className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
-          {/* Faculty Views */}
+          {/* 1. ADMIN Portal View */}
+          {role === 'ADMIN' && <AdminDashboard />}
+
+          {/* 2. COE Portal View */}
+          {role === 'COE' && (
+            <>
+              {activeTab === 'dashboard' && <COEDashboard />}
+              {activeTab === 'results' && <COEDashboard />}
+              {activeTab === 'students' && (
+                <FacultyStudentsView
+                  onNavigateToStudentProgress={(stuId) => handleFacultyNavigation('academic-progress', stuId)}
+                  onNavigateToAI={(stuId) => handleFacultyNavigation('ai-insights', stuId)}
+                />
+              )}
+              {activeTab === 'academic-progress' && (
+                <FacultyProgressView
+                  initialStudentId={drilldownStudentId}
+                  onNavigateToAI={(stuId) => handleFacultyNavigation('ai-insights', stuId)}
+                />
+              )}
+              {activeTab === 'reports' && <FacultyReportsView />}
+              {activeTab === 'audit-logs' && <FacultyAuditLogsView />}
+            </>
+          )}
+
+          {/* 3. FACULTY Portal Views */}
           {role === 'FACULTY' && (
             <>
               {activeTab === 'dashboard' && (
@@ -96,11 +169,11 @@ const MainLayout: React.FC = () => {
             </>
           )}
 
-          {/* Student Views (Strict Read-Only) */}
+          {/* 4. STUDENT Portal Views (Strictly Read-Only) */}
           {role === 'STUDENT' && (
             <>
               {activeTab === 'dashboard' && (
-                <StudentDashboard onNavigate={setActiveTab} />
+                <StudentDashboard onNavigate={handleTabSelect} />
               )}
               {activeTab === 'my-profile' && <StudentProfileView />}
               {activeTab === 'attendance' && <StudentAttendanceView />}

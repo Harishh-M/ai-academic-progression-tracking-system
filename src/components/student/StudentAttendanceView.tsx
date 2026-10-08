@@ -41,7 +41,7 @@ export const StudentAttendanceView: React.FC = () => {
   if (loading || !metrics) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -63,8 +63,8 @@ export const StudentAttendanceView: React.FC = () => {
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
+          <ShieldCheck className="w-4 h-4 text-[#3F7D58]" />
           <span>Faculty Biometric & Manual Verified</span>
         </div>
       </div>
@@ -87,14 +87,14 @@ export const StudentAttendanceView: React.FC = () => {
           value={metrics.presentClasses}
           subtitle={`Out of ${metrics.totalClasses} total lecture hours`}
           icon={CheckCircle}
-          accentColor="indigo"
+          accentColor="secondary"
         />
         <MetricCard
           title="Classes Missed"
           value={metrics.absentClasses}
           subtitle="Authorized and unauthorized"
           icon={XCircle}
-          accentColor="amber"
+          accentColor="warning"
         />
       </div>
 
@@ -109,7 +109,7 @@ export const StudentAttendanceView: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3">Course Code</th>
                 <th className="px-5 py-3">Course Title</th>
@@ -128,19 +128,19 @@ export const StudentAttendanceView: React.FC = () => {
 
                 return (
                   <tr key={cw.courseId} className="hover:bg-slate-50/70 transition">
-                    <td className="px-5 py-3.5 font-mono font-bold text-indigo-700">{cw.courseCode}</td>
+                    <td className="px-5 py-3.5 font-mono font-bold text-[#1E3A5F]">{cw.courseCode}</td>
                     <td className="px-5 py-3.5 font-medium text-slate-900">{cw.courseName}</td>
                     <td className="px-5 py-3.5 text-center font-semibold">{cw.total}</td>
-                    <td className="px-5 py-3.5 text-center font-semibold text-emerald-700">{cw.present}</td>
-                    <td className="px-5 py-3.5 text-center font-semibold text-rose-600">{cw.absent}</td>
+                    <td className="px-5 py-3.5 text-center font-semibold text-[#3F7D58]">{cw.present}</td>
+                    <td className="px-5 py-3.5 text-center font-semibold text-[#B94A48]">{cw.absent}</td>
                     <td className="px-5 py-3.5 text-right font-mono font-bold text-sm">
                       <span
                         className={
                           isSafe
-                            ? 'text-emerald-700'
+                            ? 'text-[#3F7D58]'
                             : isWarning
-                            ? 'text-amber-700'
-                            : 'text-rose-700 font-extrabold'
+                            ? 'text-[#B7791F]'
+                            : 'text-[#B94A48] font-extrabold'
                         }
                       >
                         {cw.percentage}%
@@ -150,10 +150,10 @@ export const StudentAttendanceView: React.FC = () => {
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
                           isSafe
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
                             : isWarning
-                            ? 'bg-amber-50 text-amber-800 border-amber-200'
-                            : 'bg-rose-50 text-rose-800 border-rose-200'
+                            ? 'bg-amber-50 text-[#B7791F] border-amber-200'
+                            : 'bg-red-50 text-[#B94A48] border-red-200'
                         }`}
                       >
                         {isSafe ? 'Compliant' : isWarning ? 'Warning Tier' : 'Shortage (<75%)'}
@@ -180,7 +180,7 @@ export const StudentAttendanceView: React.FC = () => {
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
             >
               <option value="ALL">All Enrolled Courses</option>
               {courses.map((c) => (
@@ -200,10 +200,10 @@ export const StudentAttendanceView: React.FC = () => {
               <div key={log.id} className="py-2.5 flex items-center justify-between hover:bg-slate-50/50 px-2 rounded">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
                       isPresent
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-rose-100 text-rose-800'
+                        ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                        : 'bg-red-50 text-[#B94A48] border-red-200'
                     }`}
                   >
                     {isPresent ? 'P' : 'A'}
@@ -217,10 +217,10 @@ export const StudentAttendanceView: React.FC = () => {
                 <div className="flex items-center gap-4">
                   <span className="text-slate-600 font-medium">{log.date}</span>
                   <span
-                    className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
                       isPresent
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                        : 'bg-red-50 text-[#B94A48] border-red-200'
                     }`}
                   >
                     {log.status}

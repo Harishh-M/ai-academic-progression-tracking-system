@@ -6,13 +6,13 @@ import {
 } from '../../src/types/index.js';
 import { db } from '../db/database.js';
 
-export function calculateStudentMetrics(studentId: string): CalculatedAcademicMetrics {
-  const student = db.getStudentById(studentId);
-  const attendanceRecords = db.getAttendanceByStudent(studentId);
-  const semesterResults = db.getSemesterResultsByStudent(studentId);
-  const achievements = db.getAchievementsByStudent(studentId);
-  const courses = db.getAllCourses();
-  const semesters = db.getAllSemesters();
+export async function calculateStudentMetrics(studentId: string): Promise<CalculatedAcademicMetrics> {
+  const student = await db.getStudentById(studentId);
+  const attendanceRecords = await db.getAttendanceByStudent(studentId);
+  const semesterResults = await db.getSemesterResultsByStudent(studentId);
+  const achievements = await db.getAchievementsByStudent(studentId);
+  const courses = await db.getAllCourses();
+  const semesters = await db.getAllSemesters();
 
   const courseMap = new Map(courses.map((c) => [c.id, c]));
   const semesterMap = new Map(semesters.map((s) => [s.id, s]));

@@ -1,9 +1,10 @@
-export type UserRole = 'FACULTY' | 'STUDENT';
+export type UserRole = 'STUDENT' | 'FACULTY' | 'COE' | 'ADMIN';
 
 export interface User {
   id: string;
   username: string;
   email: string;
+  password_hash?: string;
   role: UserRole;
   status: 'Active' | 'Inactive';
   created_at: string;

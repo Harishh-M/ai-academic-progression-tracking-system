@@ -26,7 +26,7 @@ export const StudentReportsView: React.FC = () => {
   if (loading || !report) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -47,7 +47,7 @@ export const StudentReportsView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold shadow-xs transition flex items-center gap-2"
           >
             <Printer className="w-4 h-4" />
             <span>Print Official Transcript</span>
@@ -59,7 +59,7 @@ export const StudentReportsView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs max-w-4xl mx-auto print:border-none print:shadow-none print:p-0 space-y-6 text-slate-800">
         {/* University Header */}
         <div className="text-center pb-6 border-b-2 border-slate-900 space-y-1">
-          <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mx-auto mb-2 print:border">
+          <div className="w-12 h-12 rounded-xl bg-[#1E3A5F] text-white flex items-center justify-center mx-auto mb-2 print:border">
             <GraduationCap className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-extrabold tracking-tight uppercase text-slate-900">
@@ -80,7 +80,7 @@ export const StudentReportsView: React.FC = () => {
           </div>
           <div>
             <span className="text-slate-400 block">Register Number</span>
-            <span className="font-mono font-bold text-indigo-700">{student.register_number}</span>
+            <span className="font-mono font-bold text-[#1E3A5F]">{student.register_number}</span>
           </div>
           <div>
             <span className="text-slate-400 block">Degree Programme</span>
@@ -100,11 +100,11 @@ export const StudentReportsView: React.FC = () => {
           </div>
           <div>
             <span className="text-slate-400 block">Current Status</span>
-            <span className="font-semibold text-emerald-700">{student.current_status}</span>
+            <span className="font-semibold text-[#3F7D58]">{student.current_status}</span>
           </div>
           <div>
             <span className="text-slate-400 block">Cumulative CGPA</span>
-            <span className="font-extrabold text-indigo-700 text-sm">{metrics.cgpa.toFixed(2)} / 10.0</span>
+            <span className="font-extrabold text-[#1E3A5F] text-sm">{metrics.cgpa.toFixed(2)} / 10.0</span>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ export const StudentReportsView: React.FC = () => {
                     <td className="p-2 text-center font-bold border">{sr.grade}</td>
                     <td className="p-2 text-center font-mono border">{sr.grade_point}</td>
                     <td className="p-2 text-center font-bold border">
-                      <span className={sr.result_status === 'Pass' ? 'text-emerald-700' : 'text-rose-700'}>
+                      <span className={sr.result_status === 'Pass' ? 'text-[#3F7D58]' : 'text-[#B94A48]'}>
                         {sr.result_status}
                       </span>
                     </td>
@@ -158,11 +158,11 @@ export const StudentReportsView: React.FC = () => {
             </div>
             <div>
               <span className="text-slate-500 block">Attended Hours</span>
-              <span className="font-bold text-emerald-700">{metrics.presentClasses}</span>
+              <span className="font-bold text-[#3F7D58]">{metrics.presentClasses}</span>
             </div>
             <div>
               <span className="text-slate-500 block">Overall Percentage</span>
-              <span className="font-extrabold text-indigo-700">{metrics.attendancePercentage}%</span>
+              <span className="font-extrabold text-[#1E3A5F]">{metrics.attendancePercentage}%</span>
             </div>
           </div>
         </div>

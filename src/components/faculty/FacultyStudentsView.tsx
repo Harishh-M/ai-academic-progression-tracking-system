@@ -131,7 +131,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
         <button
           id="btn-add-student"
           onClick={handleOpenNewStudent}
-          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto"
+          className="px-4 py-2 rounded-xl bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Enrol New Student</span>
@@ -140,7 +140,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
 
       {feedback && (
         <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <CheckCircle2 className="w-4 h-4 text-[#3F7D58]" />
           <span>{feedback}</span>
         </div>
       )}
@@ -156,7 +156,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
             placeholder="Search by Name, Register No, ABC ID, UMIS..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition"
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:bg-white transition"
           />
         </div>
 
@@ -166,7 +166,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
             id="select-batch"
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             <option value="">All Batches</option>
             <option value="2023-2027">Batch 2023-2027</option>
@@ -181,7 +181,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
             id="select-status"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             <option value="">All Statuses</option>
             <option value="Continuing">Continuing</option>
@@ -198,7 +198,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
             id="select-risk"
             value={selectedRisk}
             onChange={(e) => setSelectedRisk(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             <option value="">All Risk Levels</option>
             <option value="High">High Risk</option>
@@ -219,7 +219,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Register No</th>
                 <th className="px-4 py-3">Student Name</th>
@@ -236,14 +236,14 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
               {loading ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
-                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <div className="w-6 h-6 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     Loading institutional student records...
                   </td>
                 </tr>
               ) : students.length > 0 ? (
                 students.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50/70 transition">
-                    <td className="px-4 py-3 font-mono font-bold text-indigo-700">{s.register_number}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-[#1E3A5F]">{s.register_number}</td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-slate-900">{s.student_name}</div>
                       <div className="text-[11px] text-slate-400">{s.email}</div>
@@ -258,7 +258,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`font-semibold ${
-                          s.attendancePercentage >= 75 ? 'text-slate-800' : 'text-rose-600 font-bold'
+                          s.attendancePercentage >= 75 ? 'text-slate-800' : 'text-[#B94A48] font-bold'
                         }`}
                       >
                         {s.attendancePercentage}%
@@ -266,10 +266,10 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                           s.currentArrears === 0
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                            : 'bg-red-50 text-[#B94A48] border-red-200'
                         }`}
                       >
                         {s.currentArrears}
@@ -277,12 +277,12 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${
                           s.current_status === 'Continuing'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            ? 'bg-blue-50 text-[#3B6EA5] border-blue-200'
                             : s.current_status === 'Completed'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                            : 'bg-red-50 text-[#B94A48] border-red-200'
                         }`}
                       >
                         {s.current_status}
@@ -306,7 +306,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                             setEditModalStudent({ ...s });
                           }}
                           title="Edit Student Record"
-                          className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] transition"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -314,7 +314,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                           <button
                             onClick={() => onNavigateToAI(s.id)}
                             title="Run AI Advisor"
-                            className="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 transition"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] transition"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                           </button>
@@ -337,11 +337,11 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
 
       {/* Student Dossier Modal */}
       {dossierStudent && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-indigo-600" />
+                <GraduationCap className="w-5 h-5 text-[#1E3A5F]" />
                 <h3 className="font-bold text-slate-900 text-base">Comprehensive Student Dossier</h3>
               </div>
               <button
@@ -357,7 +357,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
               <div>
                 <h4 className="font-extrabold text-slate-900 text-lg">{dossierStudent.student_name}</h4>
                 <div className="text-xs text-slate-500 font-mono">
-                  Reg No: <span className="font-bold text-indigo-700">{dossierStudent.register_number}</span> |
+                  Reg No: <span className="font-bold text-[#1E3A5F]">{dossierStudent.register_number}</span> |
                   Adm No: <span>{dossierStudent.admission_number}</span>
                 </div>
               </div>
@@ -399,11 +399,11 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
               </div>
               <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Status</span>
-                <span className="font-bold text-emerald-700">{dossierStudent.current_status}</span>
+                <span className="font-bold text-[#3F7D58]">{dossierStudent.current_status}</span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Institutional Fees</span>
-                <span className="font-bold text-indigo-700">{dossierStudent.student_fees_status}</span>
+                <span className="font-bold text-[#1E3A5F]">{dossierStudent.student_fees_status}</span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Readmitted Category</span>
@@ -430,7 +430,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   setDossierStudent(null);
                   if (onNavigateToStudentProgress) onNavigateToStudentProgress(s.id);
                 }}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition"
+                className="px-4 py-2 rounded-xl bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold transition"
               >
                 View Academic Ledger & Transcript
               </button>
@@ -447,10 +447,10 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
 
       {/* Edit / Add Student Modal */}
       {editModalStudent && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveStudent}
-            className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto text-xs"
+            className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto text-xs"
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-slate-900 text-base">
@@ -473,7 +473,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   required
                   value={editModalStudent.student_name || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, student_name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -484,7 +484,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   required
                   value={editModalStudent.register_number || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, register_number: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -494,7 +494,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   type="text"
                   value={editModalStudent.admission_number || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, admission_number: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -504,7 +504,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   type="text"
                   value={editModalStudent.abc_id || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, abc_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -514,7 +514,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   type="text"
                   value={editModalStudent.umis_number || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, umis_number: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -524,7 +524,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   type="email"
                   value={editModalStudent.email || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -534,7 +534,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   type="tel"
                   value={editModalStudent.mobile_number || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, mobile_number: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -544,7 +544,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   type="text"
                   value={editModalStudent.programme || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, programme: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
 
@@ -553,7 +553,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                 <select
                   value={editModalStudent.current_status || 'Continuing'}
                   onChange={(e: any) => setEditModalStudent({ ...editModalStudent, current_status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 >
                   <option value="Continuing">Continuing</option>
                   <option value="Completed">Completed</option>
@@ -569,7 +569,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                 <select
                   value={editModalStudent.student_fees_status || 'Paid'}
                   onChange={(e: any) => setEditModalStudent({ ...editModalStudent, student_fees_status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 >
                   <option value="Paid">Paid</option>
                   <option value="Pending">Pending</option>
@@ -583,7 +583,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
                   type="text"
                   value={editModalStudent.address || ''}
                   onChange={(e) => setEditModalStudent({ ...editModalStudent, address: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E3A5F]"
                 />
               </div>
             </div>
@@ -599,7 +599,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs transition"
+                className="px-5 py-2 rounded-xl bg-[#1E3A5F] hover:bg-[#16304F] text-white font-semibold shadow-xs transition"
               >
                 {saving ? 'Saving...' : 'Save to Institutional Ledger'}
               </button>

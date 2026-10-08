@@ -20,14 +20,14 @@ function getGenAI(): GoogleGenAI | null {
 }
 
 export async function generateStudentAIAnalysis(studentId: string): Promise<AIAnalysisResult> {
-  const student = db.getStudentById(studentId);
+  const student = await db.getStudentById(studentId);
   if (!student) {
     throw new Error('Student not found');
   }
 
-  const metrics = calculateStudentMetrics(studentId);
-  const internalMarks = db.getInternalMarksByStudent(studentId);
-  const courses = db.getAllCourses();
+  const metrics = await calculateStudentMetrics(studentId);
+  const internalMarks = await db.getInternalMarksByStudent(studentId);
+  const courses = await db.getAllCourses();
   const courseMap = new Map(courses.map((c) => [c.id, c]));
 
   // Build verified academic context string
@@ -127,7 +127,7 @@ Generate a structured JSON analysis strictly matching the requested format:
           : ['Time management during internal assessments', 'Regular revision of theoretical proof techniques'],
       };
 
-      db.saveAIAnalysis(result);
+      await db.saveAIAnalysis(result);
       return result;
     } catch (err) {
       console.warn('Gemini API call encountered error, using deterministic rule-based analysis fallback:', err);
@@ -136,11 +136,11 @@ Generate a structured JSON analysis strictly matching the requested format:
 
   // Fallback deterministic analysis
   const fallbackResult = generateDeterministicAIAnalysis(student, metrics);
-  db.saveAIAnalysis(fallbackResult);
+  await db.saveAIAnalysis(fallbackResult);
   return fallbackResult;
 }
 
-function generateDeterministicAIAnalysis(student: Student, metrics: ReturnType<typeof calculateStudentMetrics>): AIAnalysisResult {
+function generateDeterministicAIAnalysis(student: Student, metrics: Awaited<ReturnType<typeof calculateStudentMetrics>>): AIAnalysisResult {
   const isHigh = metrics.riskLevel === 'High';
   const isMed = metrics.riskLevel === 'Medium';
 
@@ -212,8 +212,8 @@ function generateDeterministicAIAnalysis(student: Student, metrics: ReturnType<t
 }
 
 // RAG Retriever for Institutional Regulations
-export function retrieveRelevantRegulations(query: string): InstitutionalRegulation[] {
-  const all = db.getAllRegulations();
+export async function retrieveRelevantRegulations(query: string): Promise<InstitutionalRegulation[]> {
+  const all = await db.getAllRegulations();
   const qTerms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
 
   if (qTerms.length === 0) return all.slice(0, 2);
@@ -240,7 +240,7 @@ export async function handleAIChat(
   userEntityId: string, // faculty_id or student_id
   targetStudentId?: string
 ): Promise<{ response: string; citations?: Array<{ documentTitle: string; clause: string; snippet: string }> }> {
-  const regulations = retrieveRelevantRegulations(userPrompt);
+  const regulations = await retrieveRelevantRegulations(userPrompt);
   const ragContext = regulations
     .map((r) => `[DOCUMENT: ${r.title} | Code: ${r.document_code} | Clause: ${r.clause_reference}]\n${r.content}`)
     .join('\n\n');
@@ -249,13 +249,13 @@ export async function handleAIChat(
 
   if (userRole === 'STUDENT') {
     // Strict privacy: Student can only access their own data
-    const student = db.getStudentById(userEntityId);
+    const student = await db.getStudentById(userEntityId);
     if (!student) {
       return { response: 'Student academic record not found in system.' };
     }
-    const metrics = calculateStudentMetrics(userEntityId);
-    const marks = db.getInternalMarksByStudent(userEntityId);
-    const courses = db.getAllCourses();
+    const metrics = await calculateStudentMetrics(userEntityId);
+    const marks = await db.getInternalMarksByStudent(userEntityId);
+    const courses = await db.getAllCourses();
     const courseMap = new Map(courses.map((c) => [c.id, c]));
 
     const marksStr = marks
@@ -275,13 +275,13 @@ AUTHORIZED STUDENT CONTEXT (Self Only):
 `;
   } else {
     // Faculty role
-    const faculty = db.getFacultyById(userEntityId);
-    const assignedStudents = db.getStudentsByFaculty(userEntityId);
+    const faculty = await db.getFacultyById(userEntityId);
+    const assignedStudents = await db.getStudentsByFaculty(userEntityId);
 
     if (targetStudentId) {
-      const targetStudent = db.getStudentById(targetStudentId);
+      const targetStudent = await db.getStudentById(targetStudentId);
       if (targetStudent) {
-        const metrics = calculateStudentMetrics(targetStudentId);
+        const metrics = await calculateStudentMetrics(targetStudentId);
         academicContext = `
 SPECIFIC STUDENT CONTEXT:
 - Name: ${targetStudent.student_name} (${targetStudent.register_number})
@@ -292,13 +292,13 @@ SPECIFIC STUDENT CONTEXT:
       }
     } else {
       // Cohort summary
-      const atRiskStudents = assignedStudents
-        .map((s) => ({ s, m: calculateStudentMetrics(s.id) }))
-        .filter((item) => item.m.riskLevel === 'High' || item.m.riskLevel === 'Medium');
+      const atRiskStudents = (
+        await Promise.all(assignedStudents.map(async (s) => ({ s, m: await calculateStudentMetrics(s.id) })))
+      ).filter((item) => item.m.riskLevel === 'High' || item.m.riskLevel === 'Medium');
 
-      const attendanceShortage = assignedStudents
-        .map((s) => ({ s, m: calculateStudentMetrics(s.id) }))
-        .filter((item) => item.m.attendancePercentage < 75);
+      const attendanceShortage = (
+        await Promise.all(assignedStudents.map(async (s) => ({ s, m: await calculateStudentMetrics(s.id) })))
+      ).filter((item) => item.m.attendancePercentage < 75);
 
       academicContext = `
 FACULTY ASSIGNED COHORT CONTEXT:
@@ -360,18 +360,18 @@ RULES:
   }));
 
   if (userRole === 'STUDENT') {
-    const student = db.getStudentById(userEntityId);
-    const metrics = calculateStudentMetrics(userEntityId);
+    const student = await db.getStudentById(userEntityId);
+    const metrics = await calculateStudentMetrics(userEntityId);
     return {
       response: `Hello ${student?.student_name}. Based on verified institutional ERP records, your current CGPA is **${metrics.cgpa.toFixed(2)}** with an overall attendance of **${metrics.attendancePercentage}%** (${metrics.presentClasses} of ${metrics.totalClasses} classes attended). You currently have **${metrics.currentArrears}** active arrear(s). ${metrics.riskReasons.join(' ')}. Under University Regulation Clause 4.2, ensure your attendance remains above 75% for end-semester exam eligibility.`,
       citations,
     };
   } else {
-    const faculty = db.getFacultyById(userEntityId);
-    const assignedStudents = db.getStudentsByFaculty(userEntityId);
-    const atRisk = assignedStudents
-      .map((s) => ({ s, m: calculateStudentMetrics(s.id) }))
-      .filter((i) => i.m.riskLevel === 'High');
+    const faculty = await db.getFacultyById(userEntityId);
+    const assignedStudents = await db.getStudentsByFaculty(userEntityId);
+    const atRisk = (
+      await Promise.all(assignedStudents.map(async (s) => ({ s, m: await calculateStudentMetrics(s.id) })))
+    ).filter((i) => i.m.riskLevel === 'High');
 
     return {
       response: `Dear Dr. ${faculty?.last_name || 'Faculty'}, you have ${assignedStudents.length} assigned students. Currently, ${atRisk.length} student(s) require intervention due to attendance shortages (<75%) or multiple arrears (${atRisk.map((a) => a.s.student_name).join(', ') || 'None'}). All academic data is verified under University Academic Regulations.`,

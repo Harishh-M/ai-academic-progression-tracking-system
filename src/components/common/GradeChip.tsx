@@ -13,21 +13,21 @@ export const GradeChip: React.FC<GradeChipProps> = ({ grade, points, status }) =
   let colorClasses = 'bg-slate-100 text-slate-700 border-slate-200';
 
   if (isFail) {
-    colorClasses = 'bg-rose-100 text-rose-800 border-rose-300 font-bold';
+    colorClasses = 'bg-red-50 text-[#B94A48] border-red-200 font-bold';
   } else if (grade === 'O') {
-    colorClasses = 'bg-purple-100 text-purple-800 border-purple-300 font-bold';
+    colorClasses = 'bg-slate-100 text-[#1E3A5F] border-slate-300 font-bold';
   } else if (grade === 'A+' || grade === 'A') {
-    colorClasses = 'bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold';
+    colorClasses = 'bg-emerald-50 text-[#3F7D58] border-emerald-200 font-semibold';
   } else if (grade === 'B+' || grade === 'B') {
-    colorClasses = 'bg-blue-100 text-blue-800 border-blue-300 font-medium';
+    colorClasses = 'bg-blue-50 text-[#3B6EA5] border-blue-200 font-medium';
   } else if (grade === 'C') {
-    colorClasses = 'bg-amber-100 text-amber-800 border-amber-300';
+    colorClasses = 'bg-amber-50 text-[#B7791F] border-amber-200';
   }
 
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs border ${colorClasses}`}>
       <span>Grade {grade}</span>
-      {points !== undefined && <span className="opacity-70">({points} pt)</span>}
+      {points !== undefined && <span className="opacity-75">({points} pt)</span>}
     </span>
   );
 };

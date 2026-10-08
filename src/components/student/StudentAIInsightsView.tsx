@@ -104,7 +104,7 @@ export const StudentAIInsightsView: React.FC = () => {
   if (loading || !analysis || !metrics) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -112,15 +112,15 @@ export const StudentAIInsightsView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl text-white p-6 shadow-md">
+      <div className="bg-[#1E3A5F] rounded-2xl text-white p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              <h1 className="text-2xl font-bold">Generative AI Academic Intelligence & Diagnostics</h1>
+              <Sparkles className="w-5 h-5 text-slate-300" />
+              <h1 className="text-2xl font-bold">Academic Intelligence & Trajectory Diagnostics</h1>
             </div>
-            <p className="text-xs text-indigo-200">
-              Powered by Google Gemini • Analyzes verified ERP grades, attendance trends, and university academic regulations
+            <p className="text-xs text-slate-300">
+              Institutional Analytics Engine • Analyzes verified ERP grades, attendance trends, and university academic regulations
             </p>
           </div>
 
@@ -137,10 +137,10 @@ export const StudentAIInsightsView: React.FC = () => {
       </div>
 
       {/* AI Performance Summary */}
-      <div className="bg-white rounded-2xl border border-indigo-100 p-6 shadow-xs space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-600" />
+            <Sparkles className="w-4 h-4 text-[#1E3A5F]" />
             <h2 className="font-bold text-slate-900 text-base">Comprehensive Performance Appraisal</h2>
           </div>
           <div className="flex items-center gap-2">
@@ -149,29 +149,29 @@ export const StudentAIInsightsView: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-indigo-50/40 border border-indigo-100 text-sm text-slate-800 leading-relaxed font-medium">
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 leading-relaxed font-medium">
           {analysis.summary}
         </div>
 
         {/* Trajectory & Risk Reasons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
             <div className="flex items-center gap-2 font-bold text-slate-900">
-              <TrendingUp className="w-4 h-4 text-indigo-600" />
+              <TrendingUp className="w-4 h-4 text-[#1E3A5F]" />
               <span>Performance Trajectory Explanation</span>
             </div>
             <p className="text-slate-700 leading-relaxed">{analysis.performanceTrendExplanation}</p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
             <div className="flex items-center gap-2 font-bold text-slate-900">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <AlertTriangle className="w-4 h-4 text-[#B7791F]" />
               <span>Diagnostic Standing Rationale</span>
             </div>
             <ul className="space-y-1 text-slate-700">
               {analysis.riskReasons.map((r, i) => (
                 <li key={i} className="flex items-start gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B7791F] mt-1.5 shrink-0" />
                   <span>{r}</span>
                 </li>
               ))}
@@ -183,15 +183,15 @@ export const StudentAIInsightsView: React.FC = () => {
       {/* 3-Column Diagnostic Matrix: Strengths, Weak Subjects, Recommendations */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Strengths */}
-        <div className="bg-white rounded-2xl border border-emerald-100 p-5 shadow-xs space-y-3">
-          <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wider pb-2 border-b border-emerald-100">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+          <div className="flex items-center gap-2 text-[#3F7D58] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
+            <CheckCircle2 className="w-4 h-4 text-[#3F7D58]" />
             <span>Academic Strengths</span>
           </div>
           <ul className="space-y-2 text-xs text-slate-700">
             {analysis.strengths.map((st, i) => (
-              <li key={i} className="flex items-start gap-2 bg-emerald-50/40 p-2.5 rounded-lg border border-emerald-100/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+              <li key={i} className="flex items-start gap-2 bg-emerald-50/40 p-2.5 rounded-lg border border-emerald-200/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3F7D58] mt-1.5 shrink-0" />
                 <span>{st}</span>
               </li>
             ))}
@@ -199,15 +199,15 @@ export const StudentAIInsightsView: React.FC = () => {
         </div>
 
         {/* Weak Subjects */}
-        <div className="bg-white rounded-2xl border border-rose-100 p-5 shadow-xs space-y-3">
-          <div className="flex items-center gap-2 text-rose-800 font-bold text-xs uppercase tracking-wider pb-2 border-b border-rose-100">
-            <Target className="w-4 h-4 text-rose-600" />
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+          <div className="flex items-center gap-2 text-[#B94A48] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
+            <Target className="w-4 h-4 text-[#B94A48]" />
             <span>Weak Subjects / Attention Areas</span>
           </div>
           <ul className="space-y-2 text-xs text-slate-700">
             {analysis.weakSubjects.map((ws, i) => (
-              <li key={i} className="flex items-start gap-2 bg-rose-50/40 p-2.5 rounded-lg border border-rose-100/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+              <li key={i} className="flex items-start gap-2 bg-red-50/40 p-2.5 rounded-lg border border-red-200/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#B94A48] mt-1.5 shrink-0" />
                 <span>{ws}</span>
               </li>
             ))}
@@ -215,15 +215,15 @@ export const StudentAIInsightsView: React.FC = () => {
         </div>
 
         {/* Personalized Recommendations */}
-        <div className="bg-white rounded-2xl border border-indigo-100 p-5 shadow-xs space-y-3">
-          <div className="flex items-center gap-2 text-indigo-800 font-bold text-xs uppercase tracking-wider pb-2 border-b border-indigo-100">
-            <Lightbulb className="w-4 h-4 text-indigo-600" />
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+          <div className="flex items-center gap-2 text-[#1E3A5F] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
+            <Lightbulb className="w-4 h-4 text-[#1E3A5F]" />
             <span>Personalized Recommendations</span>
           </div>
           <ul className="space-y-2 text-xs text-slate-700">
             {analysis.personalizedRecommendations.map((rec, i) => (
-              <li key={i} className="flex items-start gap-2 bg-indigo-50/40 p-2.5 rounded-lg border border-indigo-100/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+              <li key={i} className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] mt-1.5 shrink-0" />
                 <span>{rec}</span>
               </li>
             ))}
@@ -235,15 +235,15 @@ export const StudentAIInsightsView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-indigo-600" />
+            <MessageSquare className="w-5 h-5 text-[#1E3A5F]" />
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Interactive AI Academic Advisor</h3>
+              <h3 className="font-bold text-slate-900 text-base">Academic Advisor Query Assistant</h3>
               <p className="text-xs text-slate-500">
                 Query verified performance data and retrieve cited institutional regulations (RAG)
               </p>
             </div>
           </div>
-          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+          <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
             Self Record Grounded
           </span>
         </div>
@@ -258,7 +258,7 @@ export const StudentAIInsightsView: React.FC = () => {
               <div
                 className={`max-w-2xl rounded-2xl p-4 text-xs leading-relaxed ${
                   msg.sender === 'user'
-                    ? 'bg-indigo-600 text-white shadow-xs rounded-br-none'
+                    ? 'bg-[#1E3A5F] text-white shadow-xs rounded-br-none'
                     : 'bg-white border border-slate-200 text-slate-800 shadow-xs rounded-bl-none'
                 }`}
               >
@@ -267,7 +267,7 @@ export const StudentAIInsightsView: React.FC = () => {
                 {/* Citations list if present */}
                 {msg.citations && msg.citations.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-[11px]">
-                    <div className="font-bold text-indigo-700 flex items-center gap-1">
+                    <div className="font-bold text-[#1E3A5F] flex items-center gap-1">
                       <BookOpen className="w-3 h-3" /> Cited University Regulations:
                     </div>
                     {msg.citations.map((c, ci) => (
@@ -283,8 +283,8 @@ export const StudentAIInsightsView: React.FC = () => {
           ))}
 
           {chatLoading && (
-            <div className="flex items-center gap-2 text-xs text-indigo-600 font-medium">
-              <span className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2 text-xs text-[#1E3A5F] font-medium">
+              <span className="w-4 h-4 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
               <span>Consulting verified academic database & regulations...</span>
             </div>
           )}
@@ -296,21 +296,21 @@ export const StudentAIInsightsView: React.FC = () => {
           <button
             type="button"
             onClick={() => setChatInput('What is the minimum attendance required under Clause 4.2?')}
-            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-indigo-400 text-slate-700 whitespace-nowrap"
+            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap"
           >
             "What is the minimum attendance rule?"
           </button>
           <button
             type="button"
             onClick={() => setChatInput('What are my weakest courses and how can I clear them?')}
-            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-indigo-400 text-slate-700 whitespace-nowrap"
+            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap"
           >
             "What are my weakest subjects?"
           </button>
           <button
             type="button"
             onClick={() => setChatInput('How is my SGPA and CGPA calculated under the grading system?')}
-            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-indigo-400 text-slate-700 whitespace-nowrap"
+            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap"
           >
             "Explain grading system & CGPA formula"
           </button>
@@ -324,13 +324,13 @@ export const StudentAIInsightsView: React.FC = () => {
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             placeholder="Ask your AI Academic Advisor regarding your grades, attendance, regulations..."
-            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition"
+            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:border-[#1E3A5F] focus:bg-white transition"
           />
           <button
             id="btn-send-chat"
             type="submit"
             disabled={!chatInput.trim() || chatLoading}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-[#1E3A5F] hover:bg-[#16304F] disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
           >
             <Send className="w-3.5 h-3.5" />
             <span>Ask Advisor</span>

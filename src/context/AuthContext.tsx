@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, Faculty, Student } from '../types/index.js';
 import { api } from '../services/api.js';
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   username: string;
   role: UserRole;
@@ -11,13 +11,29 @@ interface AuthUser {
   name: string;
 }
 
+export function getDashboardPath(role?: UserRole | null): string {
+  switch (role) {
+    case 'STUDENT':
+      return '/student/dashboard';
+    case 'FACULTY':
+      return '/faculty/dashboard';
+    case 'COE':
+      return '/coe/dashboard';
+    case 'ADMIN':
+      return '/admin/dashboard';
+    default:
+      return '/login';
+  }
+}
+
 interface AuthContextType {
   token: string | null;
   user: AuthUser | null;
   role: UserRole | null;
-  profile: Faculty | Student | null;
+  profile: any;
   isLoading: boolean;
-  login: (username: string, password?: string) => Promise<void>;
+  loading: boolean;
+  login: (username: string, password?: string) => Promise<string>;
   logout: () => void;
   switchUser: (username: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -31,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('erp_user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [profile, setProfile] = useState<Faculty | Student | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchProfile = async () => {
@@ -58,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token]);
 
-  const login = async (username: string, password?: string) => {
+  const login = async (username: string, password?: string): Promise<string> => {
     setIsLoading(true);
     try {
       const res = await api.login(username, password);
@@ -68,15 +84,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(res.user);
 
       // fetch profile details
-      const meRes = await api.getMe();
-      setProfile(meRes.profile);
+      try {
+        const meRes = await api.getMe();
+        setProfile(meRes.profile);
+      } catch {
+        // non-blocking
+      }
+
+      // Determine destination dashboard path according to role
+      const redirectPath = getDashboardPath(res.role || res.user.role);
+      window.history.pushState({}, '', redirectPath);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      return redirectPath;
     } finally {
       setIsLoading(false);
     }
   };
 
   const switchUser = async (username: string) => {
-    await login(username);
+    await login(username, 'password123');
   };
 
   const logout = () => {
@@ -85,6 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setProfile(null);
+    window.history.pushState({}, '', '/');
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   const refreshProfile = async () => {
@@ -102,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: user?.role || null,
         profile,
         isLoading,
+        loading: isLoading,
         login,
         logout,
         switchUser,

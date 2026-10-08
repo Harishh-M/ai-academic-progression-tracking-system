@@ -86,7 +86,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-10 h-10 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-medium text-slate-600">Loading your verified academic dashboard...</p>
         </div>
       </div>
@@ -98,21 +98,21 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
   return (
     <div className="space-y-6">
       {/* Read-Only Notice Banner */}
-      <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-emerald-800">
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-slate-700">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <ShieldCheck className="w-4 h-4 text-[#3F7D58] shrink-0" />
           <span>
             <strong>Verified Student Portal:</strong> All marks, attendance, and calculations are computed and cryptographically validated by university faculty.
           </span>
         </div>
-        <span className="font-semibold text-emerald-700 uppercase tracking-wider text-[10px]">Read-Only Protected</span>
+        <span className="font-semibold text-[#3F7D58] uppercase tracking-wider text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Read-Only Protected</span>
       </div>
 
       {/* Student Profile Header Card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-md">
+            <div className="w-14 h-14 rounded-xl bg-[#1E3A5F] text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-xs">
               {student.student_name.charAt(0)}
             </div>
             <div className="space-y-1">
@@ -122,16 +122,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
                 <PerformanceBadge status={metrics.performanceStatus} />
               </div>
               <p className="text-sm text-slate-600 font-medium">
-                <span className="font-mono font-bold text-indigo-700">{student.register_number}</span> • {student.programme} ({student.branch_code})
+                <span className="font-mono font-bold text-[#1E3A5F]">{student.register_number}</span> • {student.programme} ({student.branch_code})
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
-                <span>Batch: <strong>{student.batch}</strong></span>
+                <span>Batch: <strong className="text-slate-700">{student.batch}</strong></span>
                 <span>•</span>
-                <span>Department: <strong>{student.department}</strong></span>
+                <span>Department: <strong className="text-slate-700">{student.department}</strong></span>
                 <span>•</span>
                 <span>Status: <strong className="text-slate-800">{student.current_status}</strong></span>
                 <span>•</span>
-                <span>Fees: <strong className={student.student_fees_status === 'Paid' ? 'text-emerald-600' : 'text-amber-600'}>{student.student_fees_status}</strong></span>
+                <span>Fees: <strong className={student.student_fees_status === 'Paid' ? 'text-[#3F7D58]' : 'text-[#B7791F]'}>{student.student_fees_status}</strong></span>
               </div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
             </button>
             <button
               onClick={() => onNavigate('reports')}
-              className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition"
+              className="px-3.5 py-2 rounded-lg bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold shadow-xs transition"
             >
               Download Transcript
             </button>
@@ -161,7 +161,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
           value={metrics.cgpa.toFixed(2)}
           subtitle="Out of 10.0 scale"
           icon={GraduationCap}
-          accentColor="indigo"
+          accentColor="primary"
           trend={{ text: `Status: ${metrics.performanceStatus}`, isPositive: metrics.cgpa >= 7.5 }}
         />
         <MetricCard
@@ -170,7 +170,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
           value={metrics.currentSGPA.toFixed(2)}
           subtitle="Recent semester"
           icon={TrendingUp}
-          accentColor="purple"
+          accentColor="secondary"
           trend={{ text: `${metrics.semesterSGPA.length} semesters completed` }}
         />
         <MetricCard
@@ -201,11 +201,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
 
       {/* Attendance Shortage Warning Banner (If < 75%) */}
       {metrics.attendancePercentage < 75 && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-900 text-sm">
-          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-red-50/60 border border-red-200 flex items-start gap-3 text-red-900 text-sm">
+          <AlertTriangle className="w-5 h-5 text-[#B94A48] shrink-0 mt-0.5" />
           <div className="space-y-1">
             <div className="font-bold">Statutory Attendance Deficit Warning (Regulation Clause 4.2)</div>
-            <div className="text-xs text-rose-800">
+            <div className="text-xs text-red-800">
               Your overall attendance is currently <strong>{metrics.attendancePercentage}%</strong>, which is below the mandatory 75% threshold required to appear for end-semester examinations. Please consult your faculty mentor immediately regarding remedial attendance options or medical condonation.
             </div>
           </div>
@@ -223,7 +223,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
             </div>
             <button
               onClick={() => onNavigate('results')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+              className="text-xs font-semibold text-[#1E3A5F] hover:underline flex items-center gap-1"
             >
               Details <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
@@ -240,8 +240,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
                     contentStyle={{ backgroundColor: '#1e293b', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '12px' }}
                   />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Line type="monotone" dataKey="cgpa" name="CGPA" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="sgpa" name="Semester SGPA" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="cgpa" name="CGPA" stroke="#1E3A5F" strokeWidth={2.5} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="sgpa" name="Semester SGPA" stroke="#3B6EA5" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -261,7 +261,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
             </div>
             <button
               onClick={() => onNavigate('attendance')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+              className="text-xs font-semibold text-[#1E3A5F] hover:underline flex items-center gap-1"
             >
               Full Log <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
@@ -278,7 +278,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
                     contentStyle={{ backgroundColor: '#1e293b', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '12px' }}
                     formatter={(value: any) => [`${value}%`, 'Attendance']}
                   />
-                  <Bar dataKey="percentage" fill="#06b6d4" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="percentage" fill="#3B6EA5" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -291,17 +291,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
       </div>
 
       {/* Generative AI Academic Insights Section */}
-      <div className="bg-white rounded-2xl border border-indigo-100 p-6 shadow-xs space-y-5">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
+            <div className="p-2 rounded-xl bg-slate-100 text-[#1E3A5F] border border-slate-200">
+              <Sparkles className="w-5 h-5 text-[#1E3A5F]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-900 text-base">AI-Generated Academic Analysis</h3>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">
-                  Gemini Intelligence
+                <h3 className="font-bold text-slate-900 text-base">Academic Intelligence & Trajectory</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                  Automated Analytics
                 </span>
               </div>
               <p className="text-xs text-slate-500">
@@ -317,15 +317,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
               className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition flex items-center gap-1.5"
             >
               {aiLoading ? (
-                <span className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <span className="w-3.5 h-3.5 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <Sparkles className="w-3.5 h-3.5 text-[#1E3A5F]" />
               )}
               <span>Regenerate Analysis</span>
             </button>
             <button
               onClick={() => onNavigate('ai-insights')}
-              className="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold transition"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition"
             >
               Deep Diagnostics
             </button>
@@ -340,15 +340,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
         {/* 2-Column AI Grid: Strengths vs Recommendations */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           {/* Strengths */}
-          <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 space-y-3">
-            <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wider">
-              <CheckCircle className="w-4 h-4 text-emerald-600" />
+          <div className="p-4 rounded-xl bg-emerald-50/40 border border-emerald-200/60 space-y-3">
+            <div className="flex items-center gap-2 text-[#3F7D58] font-bold text-xs uppercase tracking-wider">
+              <CheckCircle className="w-4 h-4 text-[#3F7D58]" />
               <span>Identified Academic Strengths</span>
             </div>
             <ul className="space-y-2 text-xs text-slate-700">
               {aiAnalysis?.strengths.map((st, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3F7D58] mt-1.5 shrink-0" />
                   <span>{st}</span>
                 </li>
               ))}
@@ -356,15 +356,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
           </div>
 
           {/* Recommendations */}
-          <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 space-y-3">
-            <div className="flex items-center gap-2 text-indigo-800 font-bold text-xs uppercase tracking-wider">
-              <Lightbulb className="w-4 h-4 text-indigo-600" />
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="flex items-center gap-2 text-[#1E3A5F] font-bold text-xs uppercase tracking-wider">
+              <Lightbulb className="w-4 h-4 text-[#1E3A5F]" />
               <span>Personalized Recommendations</span>
             </div>
             <ul className="space-y-2 text-xs text-slate-700">
               {aiAnalysis?.personalizedRecommendations.map((rec, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] mt-1.5 shrink-0" />
                   <span>{rec}</span>
                 </li>
               ))}

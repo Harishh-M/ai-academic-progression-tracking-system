@@ -26,7 +26,7 @@ export const StudentMarksView: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -53,8 +53,8 @@ export const StudentMarksView: React.FC = () => {
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
+          <ShieldCheck className="w-4 h-4 text-[#3F7D58]" />
           <span>Faculty Certified Internal Scores</span>
         </div>
       </div>
@@ -71,7 +71,7 @@ export const StudentMarksView: React.FC = () => {
             <div key={courseId} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
               <div className="flex items-start justify-between pb-3 border-b border-slate-100">
                 <div>
-                  <span className="font-mono text-xs font-bold text-indigo-600 uppercase tracking-wider block">
+                  <span className="font-mono text-xs font-bold text-[#1E3A5F] uppercase tracking-wider block">
                     {c?.course_code || courseId}
                   </span>
                   <h3 className="font-bold text-slate-900 text-sm">{c?.course_name || 'Course Assessment'}</h3>
@@ -79,7 +79,7 @@ export const StudentMarksView: React.FC = () => {
                 </div>
 
                 <div className="text-right">
-                  <div className="text-lg font-extrabold text-slate-900">{totalPct}%</div>
+                  <div className="text-lg font-extrabold text-[#1E3A5F]">{totalPct}%</div>
                   <div className="text-[10px] text-slate-500 font-semibold">{totalObtained} / {totalMax} Total</div>
                 </div>
               </div>
@@ -94,7 +94,7 @@ export const StudentMarksView: React.FC = () => {
                   return (
                     <div
                       key={m.id}
-                      className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between"
+                      className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 flex items-center justify-between"
                     >
                       <div className="space-y-0.5">
                         <div className="font-semibold text-slate-900">{m.assessment_name}</div>
@@ -109,12 +109,12 @@ export const StudentMarksView: React.FC = () => {
                           <span className="text-slate-400 font-mono text-xs"> / {m.maximum_marks}</span>
                         </div>
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                             isHigh
-                              ? 'bg-emerald-100 text-emerald-800'
+                              ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
                               : isMid
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-rose-100 text-rose-800'
+                              ? 'bg-blue-50 text-[#3B6EA5] border-blue-200'
+                              : 'bg-red-50 text-[#B94A48] border-red-200'
                           }`}
                         >
                           {pct}%

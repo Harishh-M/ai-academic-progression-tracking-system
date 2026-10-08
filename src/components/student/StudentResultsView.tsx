@@ -47,7 +47,7 @@ export const StudentResultsView: React.FC = () => {
   if (loading || !metrics) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -69,8 +69,8 @@ export const StudentResultsView: React.FC = () => {
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
+          <ShieldCheck className="w-4 h-4 text-[#3F7D58]" />
           <span>University Certified Grade Ledger</span>
         </div>
       </div>
@@ -78,31 +78,31 @@ export const StudentResultsView: React.FC = () => {
       {/* Cumulative CGPA & Arrear Summary Header */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+          <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#1E3A5F] font-bold">
             <GraduationCap className="w-6 h-6" />
           </div>
           <div>
             <span className="text-xs text-slate-400 font-semibold uppercase">Cumulative CGPA</span>
-            <div className="text-2xl font-extrabold text-indigo-600">{metrics.cgpa.toFixed(2)}</div>
+            <div className="text-2xl font-extrabold text-[#1E3A5F]">{metrics.cgpa.toFixed(2)}</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 font-bold">
+          <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#3B6EA5] font-bold">
             <Award className="w-6 h-6" />
           </div>
           <div>
             <span className="text-xs text-slate-400 font-semibold uppercase">Completed Semesters</span>
-            <div className="text-2xl font-extrabold text-purple-600">{metrics.semesterSGPA.length}</div>
+            <div className="text-2xl font-extrabold text-[#3B6EA5]">{metrics.semesterSGPA.length}</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${
+            className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold border ${
               metrics.currentArrears === 0
-                ? 'bg-emerald-50 border border-emerald-100 text-emerald-600'
-                : 'bg-rose-50 border border-rose-100 text-rose-600'
+                ? 'bg-emerald-50 border-emerald-200 text-[#3F7D58]'
+                : 'bg-red-50 border-red-200 text-[#B94A48]'
             }`}
           >
             {metrics.currentArrears === 0 ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
@@ -111,7 +111,7 @@ export const StudentResultsView: React.FC = () => {
             <span className="text-xs text-slate-400 font-semibold uppercase">Arrear Standing</span>
             <div
               className={`text-2xl font-extrabold ${
-                metrics.currentArrears === 0 ? 'text-emerald-600' : 'text-rose-600'
+                metrics.currentArrears === 0 ? 'text-[#3F7D58]' : 'text-[#B94A48]'
               }`}
             >
               {metrics.currentArrears === 0 ? 'Zero Arrears' : `${metrics.currentArrears} Active`}
@@ -131,7 +131,7 @@ export const StudentResultsView: React.FC = () => {
               onClick={() => setSelectedSemId(sem.id)}
               className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-2 ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-[#1E3A5F] text-white shadow-xs'
                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
@@ -139,7 +139,7 @@ export const StudentResultsView: React.FC = () => {
               {semMetric && (
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                    isActive ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-700'
+                    isActive ? 'bg-[#16304F] text-white' : 'bg-slate-100 text-slate-700'
                   }`}
                 >
                   SGPA {semMetric.sgpa.toFixed(2)}
@@ -158,14 +158,14 @@ export const StudentResultsView: React.FC = () => {
             value={currentSemMetrics.sgpa.toFixed(2)}
             subtitle="Semester Grade Point Average"
             icon={GraduationCap}
-            accentColor="indigo"
+            accentColor="primary"
           />
           <MetricCard
             title="Registered Credits"
             value={currentSemMetrics.totalCredits}
             subtitle="Total credits registered"
             icon={Award}
-            accentColor="purple"
+            accentColor="secondary"
           />
           <MetricCard
             title="Earned Credits"
@@ -197,7 +197,7 @@ export const StudentResultsView: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3">Course Code</th>
                 <th className="px-5 py-3">Course Title</th>
@@ -214,7 +214,7 @@ export const StudentResultsView: React.FC = () => {
                   const isPass = r.result_status === 'Pass';
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/70 transition">
-                      <td className="px-5 py-3.5 font-mono font-bold text-indigo-700">{c?.course_code || r.course_id}</td>
+                      <td className="px-5 py-3.5 font-mono font-bold text-[#1E3A5F]">{c?.course_code || r.course_id}</td>
                       <td className="px-5 py-3.5 font-medium text-slate-900">{c?.course_name || 'Course'}</td>
                       <td className="px-5 py-3.5 text-center font-semibold">{r.credits}</td>
                       <td className="px-5 py-3.5 text-center">
@@ -223,10 +223,10 @@ export const StudentResultsView: React.FC = () => {
                       <td className="px-5 py-3.5 text-center font-mono font-bold text-slate-900">{r.grade_point}</td>
                       <td className="px-5 py-3.5 text-center">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${
                             isPass
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-rose-100 text-rose-800'
+                              ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                              : 'bg-red-50 text-[#B94A48] border-red-200'
                           }`}
                         >
                           {r.result_status}

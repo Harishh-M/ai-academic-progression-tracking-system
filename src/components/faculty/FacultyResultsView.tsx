@@ -117,7 +117,7 @@ export const FacultyResultsView: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -149,7 +149,7 @@ export const FacultyResultsView: React.FC = () => {
           id="btn-save-results"
           onClick={handleSaveResults}
           disabled={saving}
-          className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition flex items-center gap-2 self-start sm:self-auto"
+          className="px-5 py-2 rounded-xl bg-[#1E3A5F] hover:bg-[#16304F] disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition flex items-center gap-2 self-start sm:self-auto"
         >
           <Save className="w-4 h-4" />
           <span>{saving ? 'Publishing...' : 'Commit Grades to ERP'}</span>
@@ -158,7 +158,7 @@ export const FacultyResultsView: React.FC = () => {
 
       {feedback && (
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <CheckCircle2 className="w-4 h-4 text-[#3F7D58]" />
           <span>{feedback}</span>
         </div>
       )}
@@ -167,14 +167,14 @@ export const FacultyResultsView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
         <div>
           <label className="block font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+            <Calendar className="w-3.5 h-3.5 text-[#1E3A5F]" />
             <span>Select Semester Examination</span>
           </label>
           <select
             id="select-results-semester"
             value={selectedSemId}
             onChange={(e) => setSelectedSemId(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             {semesters.map((s) => (
               <option key={s.id} value={s.id}>
@@ -186,14 +186,14 @@ export const FacultyResultsView: React.FC = () => {
 
         <div>
           <label className="block font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
-            <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+            <BookOpen className="w-3.5 h-3.5 text-[#1E3A5F]" />
             <span>Select Course</span>
           </label>
           <select
             id="select-results-course"
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
@@ -208,7 +208,7 @@ export const FacultyResultsView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-            Course Grade Distribution • Pass Rate: <strong className="text-emerald-700">{passRate}%</strong>
+            Course Grade Distribution • Pass Rate: <strong className="text-[#3F7D58]">{passRate}%</strong>
           </span>
           <span className="text-xs text-slate-400">Total Enrolled: {students.length}</span>
         </div>
@@ -219,7 +219,7 @@ export const FacultyResultsView: React.FC = () => {
               key={g}
               className={`p-2.5 rounded-xl border ${
                 g === 'U'
-                  ? 'bg-rose-50 border-rose-200 text-rose-900'
+                  ? 'bg-red-50 border-red-200 text-[#B94A48]'
                   : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
@@ -244,7 +244,7 @@ export const FacultyResultsView: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3">Register Number</th>
                 <th className="px-5 py-3">Student Name</th>
@@ -264,13 +264,13 @@ export const FacultyResultsView: React.FC = () => {
 
                 return (
                   <tr key={s.id} className="hover:bg-slate-50/70 transition">
-                    <td className="px-5 py-3.5 font-mono font-bold text-indigo-700">{s.register_number}</td>
+                    <td className="px-5 py-3.5 font-mono font-bold text-[#1E3A5F]">{s.register_number}</td>
                     <td className="px-5 py-3.5 font-medium text-slate-900">{s.student_name}</td>
                     <td className="px-5 py-3.5 text-center">
                       <select
                         value={currentGrade}
                         onChange={(e) => handleGradeChange(s.id, e.target.value as GradeType)}
-                        className="px-3 py-1.5 font-bold rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        className="px-3 py-1.5 font-bold rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
                       >
                         <option value="O">O (Outstanding - 10)</option>
                         <option value="A+">A+ (Excellent - 9)</option>
@@ -282,13 +282,13 @@ export const FacultyResultsView: React.FC = () => {
                       </select>
                     </td>
                     <td className="px-5 py-3.5 text-center font-mono font-bold text-slate-900">{gp}</td>
-                    <td className="px-5 py-3.5 text-center font-mono font-bold text-indigo-700">{creditPoints}</td>
+                    <td className="px-5 py-3.5 text-center font-mono font-bold text-[#1E3A5F]">{creditPoints}</td>
                     <td className="px-5 py-3.5 text-center">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-bold ${
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-bold border ${
                           isPass
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-rose-100 text-rose-800'
+                            ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                            : 'bg-red-50 text-[#B94A48] border-red-200'
                         }`}
                       >
                         {isPass ? 'Pass' : 'Fail (Arrear)'}

@@ -38,7 +38,7 @@ export const StudentProfileView: React.FC = () => {
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -51,7 +51,7 @@ export const StudentProfileView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold shrink-0 shadow-md">
+            <div className="w-16 h-16 rounded-xl bg-[#1E3A5F] text-white flex items-center justify-center text-2xl font-bold shrink-0 shadow-xs">
               {student.student_name.charAt(0)}
             </div>
             <div>
@@ -60,7 +60,7 @@ export const StudentProfileView: React.FC = () => {
                 <RiskBadge level={metrics.riskLevel} />
                 <PerformanceBadge status={metrics.performanceStatus} />
               </div>
-              <p className="text-sm font-mono font-semibold text-indigo-700">{student.register_number}</p>
+              <p className="text-sm font-mono font-semibold text-[#1E3A5F]">{student.register_number}</p>
               <p className="text-xs text-slate-500">{student.programme} • {student.branch}</p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export const StudentProfileView: React.FC = () => {
         {/* Section 1: Academic & Institutional Identifiers */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 font-bold text-sm text-slate-900">
-            <GraduationCap className="w-4 h-4 text-indigo-600" />
+            <GraduationCap className="w-4 h-4 text-[#1E3A5F]" />
             <span>Academic Identity & Enrollment</span>
           </div>
 
@@ -92,7 +92,7 @@ export const StudentProfileView: React.FC = () => {
             </div>
             <div>
               <span className="text-slate-400 block mb-0.5">Academic Bank of Credits (ABC ID)</span>
-              <span className="font-mono font-semibold text-indigo-600">{student.abc_id}</span>
+              <span className="font-mono font-semibold text-[#1E3A5F]">{student.abc_id}</span>
             </div>
             <div>
               <span className="text-slate-400 block mb-0.5">UMIS Identifier</span>
@@ -120,14 +120,14 @@ export const StudentProfileView: React.FC = () => {
         {/* Section 2: Student Status & Fee Compliance */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 font-bold text-sm text-slate-900">
-            <FileCheck className="w-4 h-4 text-indigo-600" />
+            <FileCheck className="w-4 h-4 text-[#1E3A5F]" />
             <span>Academic Standing & Status</span>
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
               <span className="text-slate-400 block mb-0.5">Current Status</span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200">
+              <span className="inline-flex items-center px-2 py-0.5 rounded font-semibold text-[#3F7D58] bg-emerald-50 border border-emerald-200">
                 {student.current_status}
               </span>
             </div>
@@ -144,8 +144,8 @@ export const StudentProfileView: React.FC = () => {
               <span
                 className={`inline-flex items-center px-2 py-0.5 rounded font-semibold ${
                   student.student_fees_status === 'Paid'
-                    ? 'text-emerald-800 bg-emerald-50 border border-emerald-200'
-                    : 'text-amber-800 bg-amber-50 border border-amber-200'
+                    ? 'text-[#3F7D58] bg-emerald-50 border border-emerald-200'
+                    : 'text-[#B7791F] bg-amber-50 border border-amber-200'
                 }`}
               >
                 {student.student_fees_status}
@@ -165,7 +165,7 @@ export const StudentProfileView: React.FC = () => {
         {/* Section 3: Personal & Contact Information */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 font-bold text-sm text-slate-900">
-            <User className="w-4 h-4 text-indigo-600" />
+            <User className="w-4 h-4 text-[#1E3A5F]" />
             <span>Personal & Communication</span>
           </div>
 
@@ -180,7 +180,7 @@ export const StudentProfileView: React.FC = () => {
             </div>
             <div className="col-span-2">
               <span className="text-slate-400 block mb-0.5">University Email</span>
-              <span className="font-mono text-indigo-600">{student.email}</span>
+              <span className="font-mono text-slate-800">{student.email}</span>
             </div>
             <div className="col-span-2">
               <span className="text-slate-400 block mb-0.5">Mobile Number</span>
@@ -196,19 +196,19 @@ export const StudentProfileView: React.FC = () => {
         {/* Section 4: Current Academic Metrics Overview */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 font-bold text-sm text-slate-900">
-            <Award className="w-4 h-4 text-indigo-600" />
+            <Award className="w-4 h-4 text-[#1E3A5F]" />
             <span>Academic Performance Metrics</span>
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
               <span className="text-slate-400 block mb-0.5">Cumulative Grade Point Average</span>
-              <span className="text-xl font-extrabold text-indigo-600">{metrics.cgpa.toFixed(2)}</span>
+              <span className="text-xl font-extrabold text-[#1E3A5F]">{metrics.cgpa.toFixed(2)}</span>
               <span className="text-[10px] text-slate-400 block">Out of 10.0 scale</span>
             </div>
             <div>
               <span className="text-slate-400 block mb-0.5">Current Semester SGPA</span>
-              <span className="text-xl font-extrabold text-purple-600">{metrics.currentSGPA.toFixed(2)}</span>
+              <span className="text-xl font-extrabold text-[#3B6EA5]">{metrics.currentSGPA.toFixed(2)}</span>
               <span className="text-[10px] text-slate-400 block">Semester {metrics.semesterSGPA.length}</span>
             </div>
             <div>

@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '../../src/types/index.js';
-import { db } from '../db/database.js';
 
 export interface AuthUser {
   id: string;
@@ -67,29 +66,41 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-export function requireFaculty(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  if (req.user.role !== 'FACULTY') {
-    return res.status(403).json({
-      error: '403 Forbidden: Student accounts are strictly restricted from performing modification operations.',
-    });
-  }
-  next();
+/**
+ * Reusable role authorization middleware factory
+ */
+export function requireRole(...allowedRoles: UserRole[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized: Please authenticate first' });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: `403 Forbidden: Access restricted to [${allowedRoles.join(', ')}]. Current role is '${req.user.role}'.`,
+      });
+    }
+
+    next();
+  };
 }
 
-export function requireStudent(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  if (req.user.role !== 'STUDENT') {
-    return res.status(403).json({ error: '403 Forbidden: Access restricted to student role' });
-  }
-  next();
-}
+// Role-specific middleware
+export const requireStudent = requireRole('STUDENT');
+export const requireFaculty = requireRole('FACULTY');
+export const requireCOE = requireRole('COE');
+export const requireAdmin = requireRole('ADMIN');
 
-export function requireStudentSelfOrFaculty(req: Request, res: Response, next: NextFunction) {
+// Combined role helpers
+export const requireCOEOrAdmin = requireRole('COE', 'ADMIN');
+export const requireFacultyOrAdmin = requireRole('FACULTY', 'ADMIN');
+export const requireFacultyOrCOEOrAdmin = requireRole('FACULTY', 'COE', 'ADMIN');
+
+/**
+ * Guard that allows a student to only access their own record,
+ * while allowing staff (Faculty, COE, Admin) to view it.
+ */
+export function requireStudentSelfOrStaff(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -97,13 +108,15 @@ export function requireStudentSelfOrFaculty(req: Request, res: Response, next: N
   const targetStudentId = req.params.studentId || req.params.id;
 
   if (req.user.role === 'STUDENT') {
-    if (req.user.studentId !== targetStudentId) {
+    if (!req.user.studentId || req.user.studentId !== targetStudentId) {
       return res.status(403).json({
         error: '403 Forbidden: Students are strictly prohibited from accessing another student academic record.',
       });
     }
   }
 
-  // If faculty, access granted
   next();
 }
+
+// Backwards-compatible alias for existing imports
+export const requireStudentSelfOrFaculty = requireStudentSelfOrStaff;

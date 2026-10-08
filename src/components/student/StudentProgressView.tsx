@@ -45,7 +45,7 @@ export const StudentProgressView: React.FC = () => {
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -87,7 +87,7 @@ export const StudentProgressView: React.FC = () => {
                 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
                 : metrics.cgpa >= 6.0
                 ? 'bg-amber-50/60 border-amber-200 text-amber-900'
-                : 'bg-rose-50/60 border-rose-200 text-rose-900'
+                : 'bg-red-50/60 border-red-200 text-red-900'
             }`}
           >
             <div className="flex items-center justify-between font-bold mb-1">
@@ -110,7 +110,7 @@ export const StudentProgressView: React.FC = () => {
                 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
                 : metrics.attendancePercentage >= 75
                 ? 'bg-amber-50/60 border-amber-200 text-amber-900'
-                : 'bg-rose-50/60 border-rose-200 text-rose-900'
+                : 'bg-red-50/60 border-red-200 text-red-900'
             }`}
           >
             <div className="flex items-center justify-between font-bold mb-1">
@@ -133,7 +133,7 @@ export const StudentProgressView: React.FC = () => {
                 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
                 : metrics.currentArrears === 1
                 ? 'bg-amber-50/60 border-amber-200 text-amber-900'
-                : 'bg-rose-50/60 border-rose-200 text-rose-900'
+                : 'bg-red-50/60 border-red-200 text-red-900'
             }`}
           >
             <div className="flex items-center justify-between font-bold mb-1">
@@ -155,7 +155,7 @@ export const StudentProgressView: React.FC = () => {
           <span className="font-bold text-slate-900 block">System Diagnostic Rationale:</span>
           {metrics.riskReasons.map((r, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] mt-1.5 shrink-0" />
               <span>{r}</span>
             </div>
           ))}
@@ -177,8 +177,8 @@ export const StudentProgressView: React.FC = () => {
                 contentStyle={{ backgroundColor: '#1e293b', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '12px' }}
               />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Line type="monotone" dataKey="cgpa" name="CGPA" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="sgpa" name="Semester SGPA" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="cgpa" name="CGPA" stroke="#1E3A5F" strokeWidth={2.5} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="sgpa" name="Semester SGPA" stroke="#3B6EA5" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -189,40 +189,40 @@ export const StudentProgressView: React.FC = () => {
         <h3 className="font-bold text-slate-900 text-base">Degree Progression Milestones</h3>
 
         <div className="space-y-3 text-xs">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/40 border border-emerald-200/60">
+            <CheckCircle2 className="w-5 h-5 text-[#3F7D58] shrink-0" />
             <div className="flex-1">
               <div className="font-bold text-slate-900">Enrolled & Institutional Onboarding Completed</div>
               <div className="text-slate-500">{student.programme} ({student.batch}) - Regular Admission</div>
             </div>
-            <span className="text-emerald-700 font-bold">Completed</span>
+            <span className="text-[#3F7D58] font-bold">Completed</span>
           </div>
 
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/40 border border-emerald-200/60">
+            <CheckCircle2 className="w-5 h-5 text-[#3F7D58] shrink-0" />
             <div className="flex-1">
               <div className="font-bold text-slate-900">Semester 1 Foundations</div>
               <div className="text-slate-500">All registered credits evaluated and grade points logged</div>
             </div>
-            <span className="text-emerald-700 font-bold">Completed</span>
+            <span className="text-[#3F7D58] font-bold">Completed</span>
           </div>
 
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/40 border border-emerald-200/60">
+            <CheckCircle2 className="w-5 h-5 text-[#3F7D58] shrink-0" />
             <div className="flex-1">
               <div className="font-bold text-slate-900">Semester 2 Core Engineering</div>
               <div className="text-slate-500">Core discipline courses and practical assessments</div>
             </div>
-            <span className="text-emerald-700 font-bold">Completed</span>
+            <span className="text-[#3F7D58] font-bold">Completed</span>
           </div>
 
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50/50 border border-indigo-100">
-            <Layers className="w-5 h-5 text-indigo-600 shrink-0" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-100/60 border border-slate-200">
+            <Layers className="w-5 h-5 text-[#1E3A5F] shrink-0" />
             <div className="flex-1">
               <div className="font-bold text-slate-900">Semester 3 In-Progress</div>
               <div className="text-slate-500">Ongoing Continuous Internal Assessments (CIA) and attendance</div>
             </div>
-            <span className="text-indigo-700 font-bold">Active Term</span>
+            <span className="text-[#1E3A5F] font-bold">Active Term</span>
           </div>
 
           <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 opacity-60">

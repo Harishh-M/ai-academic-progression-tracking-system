@@ -10,6 +10,8 @@ import { academicRouter } from './server/routes/academicRoutes.js';
 import { aiRouter } from './server/routes/aiRoutes.js';
 import { reportRouter } from './server/routes/reportRoutes.js';
 import { auditRouter } from './server/routes/auditRoutes.js';
+import { adminRouter } from './server/routes/adminRoutes.js';
+import { db } from './server/db/database.js';
 
 dotenv.config();
 
@@ -17,6 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  await db.seedIfEmpty();
   const app = express();
   const PORT = 3000;
 
@@ -34,26 +37,31 @@ async function startServer() {
   app.use('/api/ai', aiRouter);
   app.use('/api/reports', reportRouter);
   app.use('/api/audit-logs', auditRouter);
+  app.use('/api/admin', adminRouter);
 
   // Direct aliases to match requested REST routes
   app.use('/api/courses', (req, res, next) => {
-    req.url = '/courses';
+    req.url = `/courses${req.url === '/' ? '' : req.url}`;
     academicRouter(req, res, next);
   });
   app.use('/api/semesters', (req, res, next) => {
-    req.url = '/semesters';
+    req.url = `/semesters${req.url === '/' ? '' : req.url}`;
     academicRouter(req, res, next);
   });
   app.use('/api/attendance', (req, res, next) => {
+    req.url = `/attendance${req.url === '/' ? '' : req.url}`;
     academicRouter(req, res, next);
   });
   app.use('/api/marks', (req, res, next) => {
+    req.url = `/marks${req.url === '/' ? '' : req.url}`;
     academicRouter(req, res, next);
   });
   app.use('/api/results', (req, res, next) => {
+    req.url = `/results${req.url === '/' ? '' : req.url}`;
     academicRouter(req, res, next);
   });
   app.use('/api/achievements', (req, res, next) => {
+    req.url = `/achievements${req.url === '/' ? '' : req.url}`;
     academicRouter(req, res, next);
   });
   app.use('/api/academic-progress', (req, res, next) => {

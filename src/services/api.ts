@@ -50,17 +50,19 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // Auth
   login: (username: string, password?: string) =>
-    request<{ token: string; user: any; role: 'FACULTY' | 'STUDENT' }>('/auth/login', {
+    request<{ token: string; user: any; role: import('../types/index.js').UserRole }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     }),
 
-  getMe: () => request<{ user: any; profile: Faculty | Student }>('/auth/me'),
+  getMe: () => request<{ user: any; profile: any }>('/auth/me'),
 
   getDemoAccounts: () =>
     request<{
       faculty: Array<{ username: string; name: string; department: string; designation: string; role: 'FACULTY'; facultyId: string }>;
       students: Array<{ username: string; regNo: string; name: string; programme: string; currentStatus: string; role: 'STUDENT'; studentId: string }>;
+      coe?: Array<{ username: string; name: string; department: string; designation: string; role: 'COE' }>;
+      admin?: Array<{ username: string; name: string; department: string; designation: string; role: 'ADMIN' }>;
     }>('/auth/demo-accounts'),
 
   // Students
@@ -180,4 +182,64 @@ export const api = {
 
   // Audit Logs
   getAuditLogs: () => request<AuditLogRecord[]>('/audit-logs'),
+
+  // COE Result Publishing
+  publishResults: (resultIds: string[], publishedDate?: string) =>
+    request<{ success: boolean; message: string; count: number; publishedDate: string }>('/results/publish', {
+      method: 'POST',
+      body: JSON.stringify({ resultIds, publishedDate }),
+    }),
+
+  // Admin Operations
+  getAdminUsers: () => request<User[]>('/admin/users'),
+  createAdminUser: (data: any) =>
+    request<User>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateAdminUser: (id: string, data: any) =>
+    request<User>(`/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteAdminUser: (id: string) =>
+    request<{ success: boolean }>(`/admin/users/${id}`, {
+      method: 'DELETE',
+    }),
+  getAdminFaculty: () => request<Faculty[]>('/admin/faculty'),
+  createAdminFaculty: (data: any) =>
+    request<Faculty>('/admin/faculty', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  createAdminCourse: (data: any) =>
+    request<Course>('/admin/courses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  createAdminSemester: (data: any) =>
+    request<Semester>('/admin/semesters', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getFacultyMappings: () => request<any[]>('/admin/mappings/faculty'),
+  createFacultyMapping: (data: any) =>
+    request<any>('/admin/mappings/faculty', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  deleteFacultyMapping: (id: string) =>
+    request<{ success: boolean }>(`/admin/mappings/faculty/${id}`, {
+      method: 'DELETE',
+    }),
+  getStudentMappings: () => request<any[]>('/admin/mappings/student'),
+  createStudentMapping: (data: any) =>
+    request<any>('/admin/mappings/student', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  deleteStudentMapping: (id: string) =>
+    request<{ success: boolean }>(`/admin/mappings/student/${id}`, {
+      method: 'DELETE',
+    }),
 };

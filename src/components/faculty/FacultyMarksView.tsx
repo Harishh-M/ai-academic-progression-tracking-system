@@ -98,7 +98,7 @@ export const FacultyMarksView: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -129,7 +129,7 @@ export const FacultyMarksView: React.FC = () => {
           id="btn-save-marks"
           onClick={handleSaveMarks}
           disabled={saving}
-          className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition flex items-center gap-2 self-start sm:self-auto"
+          className="px-5 py-2 rounded-xl bg-[#1E3A5F] hover:bg-[#16304F] disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition flex items-center gap-2 self-start sm:self-auto"
         >
           <Save className="w-4 h-4" />
           <span>{saving ? 'Saving...' : 'Save & Publish Marks'}</span>
@@ -138,7 +138,7 @@ export const FacultyMarksView: React.FC = () => {
 
       {feedback && (
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <CheckCircle2 className="w-4 h-4 text-[#3F7D58]" />
           <span>{feedback}</span>
         </div>
       )}
@@ -147,14 +147,14 @@ export const FacultyMarksView: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
         <div>
           <label className="block font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
-            <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+            <BookOpen className="w-3.5 h-3.5 text-[#1E3A5F]" />
             <span>Select Course</span>
           </label>
           <select
             id="select-marks-course"
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
@@ -166,7 +166,7 @@ export const FacultyMarksView: React.FC = () => {
 
         <div>
           <label className="block font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
-            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+            <Layers className="w-3.5 h-3.5 text-[#1E3A5F]" />
             <span>Assessment Type</span>
           </label>
           <select
@@ -178,7 +178,7 @@ export const FacultyMarksView: React.FC = () => {
               else if (e.target.value === 'Assignment') setAssessmentName('Module Assignment 1');
               else if (e.target.value === 'Practical') setAssessmentName('Laboratory Assessment 1');
             }}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             <option value="Internal Test">Internal Test (CIA)</option>
             <option value="Assignment">Assignment</option>
@@ -196,7 +196,7 @@ export const FacultyMarksView: React.FC = () => {
             type="text"
             value={assessmentName}
             onChange={(e) => setAssessmentName(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           />
         </div>
 
@@ -211,7 +211,7 @@ export const FacultyMarksView: React.FC = () => {
             max={100}
             value={maxMarks}
             onChange={(e) => setMaxMarks(parseInt(e.target.value) || 50)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           />
         </div>
       </div>
@@ -220,25 +220,25 @@ export const FacultyMarksView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
           <span className="text-xs text-slate-400 font-bold uppercase">Class Average</span>
-          <div className="text-xl font-extrabold text-indigo-600">{classAvg} / {maxMarks}</div>
+          <div className="text-xl font-extrabold text-[#1E3A5F]">{classAvg} / {maxMarks}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">Mean Performance</div>
         </div>
 
         <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
           <span className="text-xs text-slate-400 font-bold uppercase">Highest Mark</span>
-          <div className="text-xl font-extrabold text-emerald-600">{highest} / {maxMarks}</div>
+          <div className="text-xl font-extrabold text-[#3F7D58]">{highest} / {maxMarks}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">Top Performer</div>
         </div>
 
         <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
           <span className="text-xs text-slate-400 font-bold uppercase">Lowest Mark</span>
-          <div className="text-xl font-extrabold text-amber-600">{lowest} / {maxMarks}</div>
+          <div className="text-xl font-extrabold text-[#B7791F]">{lowest} / {maxMarks}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">Requires Support</div>
         </div>
 
         <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
           <span className="text-xs text-slate-400 font-bold uppercase">CIA Pass Rate</span>
-          <div className="text-xl font-extrabold text-indigo-600">{passRate}%</div>
+          <div className="text-xl font-extrabold text-[#1E3A5F]">{passRate}%</div>
           <div className="text-[11px] text-slate-500 mt-0.5">{passCount} / {students.length} cleared ≥50%</div>
         </div>
       </div>
@@ -254,7 +254,7 @@ export const FacultyMarksView: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3">Register Number</th>
                 <th className="px-5 py-3">Student Name</th>
@@ -271,7 +271,7 @@ export const FacultyMarksView: React.FC = () => {
 
                 return (
                   <tr key={s.id} className="hover:bg-slate-50/70 transition">
-                    <td className="px-5 py-3.5 font-mono font-bold text-indigo-700">{s.register_number}</td>
+                    <td className="px-5 py-3.5 font-mono font-bold text-[#1E3A5F]">{s.register_number}</td>
                     <td className="px-5 py-3.5 font-medium text-slate-900">{s.student_name}</td>
                     <td className="px-5 py-3.5 text-center">
                       <input
@@ -280,7 +280,7 @@ export const FacultyMarksView: React.FC = () => {
                         max={maxMarks}
                         value={val}
                         onChange={(e) => handleMarkChange(s.id, e.target.value)}
-                        className="w-24 px-3 py-1.5 text-center font-mono font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white"
+                        className="w-24 px-3 py-1.5 text-center font-mono font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:bg-white"
                       />
                     </td>
                     <td className="px-5 py-3.5 text-center font-mono font-bold text-slate-800">
@@ -288,10 +288,10 @@ export const FacultyMarksView: React.FC = () => {
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-bold ${
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-bold border ${
                           isPassed
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-rose-100 text-rose-800'
+                            ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                            : 'bg-red-50 text-[#B94A48] border-red-200'
                         }`}
                       >
                         {isPassed ? 'Passed' : 'Needs Retest'}
