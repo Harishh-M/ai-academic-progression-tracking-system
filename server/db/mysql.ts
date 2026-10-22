@@ -11,8 +11,14 @@ export const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || '1234',
   database: process.env.DB_NAME || 'academic_progression_db',
 
-  // Enable SSL for the cloud database
-  ...(isProduction ? { ssl: { rejectUnauthorized: true } } : {}),
+  ...(isProduction
+    ? {
+      ssl: {
+        ca: process.env.DB_SSL_CA?.replace(/\\n/g, '\n'),
+        rejectUnauthorized: true,
+      },
+    }
+    : {}),
 
   waitForConnections: true,
   connectionLimit: 10,
