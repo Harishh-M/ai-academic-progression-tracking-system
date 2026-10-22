@@ -2,5 +2,7 @@
   "name": "Academic Progress and Achievement Tracking System",
   "description": "Production-ready academic management and student progress tracking system with Faculty and Student roles, automated SGPA/CGPA/arrear/attendance calculations, and Gemini AI performance analytics.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

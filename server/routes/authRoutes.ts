@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db/database.js';
 import { createAuthToken, requireAuth, AuthUser } from '../middleware/auth.js';
+import { UserRole } from '../../src/types/index.js';
 
 export const authRouter = Router();
 
@@ -33,32 +34,42 @@ authRouter.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Your account is currently inactive. Contact your institutional administrator.' });
     }
 
+    const userRole = (user.role || '').toUpperCase() as UserRole;
     let facultyId: string | undefined;
     let studentId: string | undefined;
     let name = user.username;
 
-    if (user.role === 'FACULTY') {
-      const faculty = await db.getFacultyByUserId(user.id);
+    if (userRole === 'FACULTY') {
+      const faculty =
+        (await db.getFacultyByUserId(user.id)) ||
+        (await db.getFacultyByUserId(user.username)) ||
+        (user.email ? await db.getFacultyByUserId(user.email) : null) ||
+        (await db.getFacultyById(user.id));
       if (faculty) {
-        facultyId = faculty.id;
+        facultyId = String(faculty.id);
         name = `${faculty.first_name} ${faculty.last_name}`;
       }
-    } else if (user.role === 'STUDENT') {
-      const student = await db.getStudentByUserId(user.id);
+    } else if (userRole === 'STUDENT') {
+      const student =
+        (await db.getStudentByUserId(user.id)) ||
+        (await db.getStudentByUserId(user.username)) ||
+        (await db.getStudentByRegisterNumber(user.username)) ||
+        (user.email ? await db.getStudentByUserId(user.email) : null) ||
+        (await db.getStudentById(user.id));
       if (student) {
-        studentId = student.id;
+        studentId = String(student.id);
         name = student.student_name;
       }
-    } else if (user.role === 'COE') {
+    } else if (userRole === 'COE') {
       name = 'Controller of Examinations';
-    } else if (user.role === 'ADMIN') {
+    } else if (userRole === 'ADMIN') {
       name = 'System Administrator';
     }
 
     const authUser: AuthUser = {
       id: user.id,
       username: user.username,
-      role: user.role,
+      role: userRole,
       facultyId,
       studentId,
       name,
@@ -69,7 +80,7 @@ authRouter.post('/login', async (req, res) => {
     return res.json({
       token,
       user: authUser,
-      role: user.role,
+      role: userRole,
     });
   } catch (err: any) {
     console.error('Login error:', err);
@@ -85,21 +96,35 @@ authRouter.get('/me', requireAuth, async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (req.user.role === 'FACULTY' && req.user.facultyId) {
-      const faculty = await db.getFacultyById(req.user.facultyId);
+    const role = (req.user.role || '').toUpperCase() as UserRole;
+    if (role === 'FACULTY') {
+      let faculty = req.user.facultyId ? await db.getFacultyById(req.user.facultyId) : null;
+      if (!faculty) {
+        faculty =
+          (await db.getFacultyByUserId(req.user.id)) ||
+          (await db.getFacultyByUserId(req.user.username)) ||
+          (await db.getFacultyById(req.user.id));
+      }
       return res.json({
-        user: req.user,
+        user: { ...req.user, role, facultyId: faculty ? String(faculty.id) : req.user.facultyId },
         profile: faculty,
       });
-    } else if (req.user.role === 'STUDENT' && req.user.studentId) {
-      const student = await db.getStudentById(req.user.studentId);
+    } else if (role === 'STUDENT') {
+      let student = req.user.studentId ? await db.getStudentById(req.user.studentId) : null;
+      if (!student) {
+        student =
+          (await db.getStudentByUserId(req.user.id)) ||
+          (await db.getStudentByUserId(req.user.username)) ||
+          (await db.getStudentByRegisterNumber(req.user.username)) ||
+          (await db.getStudentById(req.user.id));
+      }
       return res.json({
-        user: req.user,
+        user: { ...req.user, role, studentId: student ? String(student.id) : req.user.studentId },
         profile: student,
       });
-    } else if (req.user.role === 'COE') {
+    } else if (role === 'COE') {
       return res.json({
-        user: req.user,
+        user: { ...req.user, role },
         profile: {
           role: 'COE',
           designation: 'Controller of Examinations',
@@ -107,9 +132,9 @@ authRouter.get('/me', requireAuth, async (req, res) => {
           institution: 'State Technological University',
         },
       });
-    } else if (req.user.role === 'ADMIN') {
+    } else if (role === 'ADMIN') {
       return res.json({
-        user: req.user,
+        user: { ...req.user, role },
         profile: {
           role: 'ADMIN',
           designation: 'System Administrator',

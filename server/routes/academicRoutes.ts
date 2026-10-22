@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db/database.js';
+import { pool } from '../db/mysql.js';
 import {
   requireAuth,
   requireFaculty,
@@ -68,21 +69,28 @@ academicRouter.get('/attendance', requireAuth, async (req, res) => {
       return res.json(records);
     }
 
-    if (req.user?.role === 'FACULTY' && req.user.facultyId) {
-      const facultyCourses = (await db.getFacultyCourses(req.user.facultyId)).map((fc) => fc.course_id);
-      const allStudents = await db.getStudentsByFaculty(req.user.facultyId);
-      const allAtt = (
-        await Promise.all(allStudents.map((s) => db.getAttendanceByStudent(s.id)))
-      ).flat();
-      return res.json(allAtt.filter((a) => facultyCourses.includes(a.course_id)).slice(0, 100));
+    if (req.user?.role === 'FACULTY') {
+      let facultyId = req.user.facultyId;
+      if (!facultyId && req.user.id) {
+        const fac = (await db.getFacultyByUserId(req.user.id)) || (await db.getFacultyById(req.user.id));
+        if (fac) facultyId = String(fac.id);
+      }
+      const facultyCourses = facultyId ? (await db.getFacultyCourses(facultyId)).map((fc) => fc.course_id) : [];
+      if (facultyCourses.length > 0) {
+        const placeholders = facultyCourses.map(() => '?').join(', ');
+        const [rows]: any = await pool.query(
+          `SELECT * FROM attendance WHERE course_id IN (${placeholders}) ORDER BY date DESC LIMIT 200`,
+          facultyCourses
+        );
+        return res.json(rows);
+      }
+      const [rows]: any = await pool.query('SELECT * FROM attendance ORDER BY date DESC LIMIT 100');
+      return res.json(rows);
     }
 
     // COE or ADMIN: return top recent attendance or student filtered
-    const students = await db.getAllStudents();
-    const sampleAtt = (
-      await Promise.all(students.slice(0, 20).map((s) => db.getAttendanceByStudent(s.id)))
-    ).flat();
-    res.json(sampleAtt.slice(0, 100));
+    const [sampleAtt]: any = await pool.query('SELECT * FROM attendance ORDER BY date DESC LIMIT 200');
+    res.json(sampleAtt);
   } catch (err: any) {
     console.error('Get attendance error:', err);
     res.status(500).json({ error: 'Failed to query attendance records' });
@@ -139,19 +147,28 @@ academicRouter.get('/marks', requireAuth, async (req, res) => {
       return res.json(await db.getInternalMarksByStudent(studentId));
     }
 
-    if (req.user?.role === 'FACULTY' && req.user.facultyId) {
-      const allStudents = await db.getStudentsByFaculty(req.user.facultyId);
-      const allMarks = (
-        await Promise.all(allStudents.map((s) => db.getInternalMarksByStudent(s.id)))
-      ).flat();
-      return res.json(allMarks);
+    if (req.user?.role === 'FACULTY') {
+      let facultyId = req.user.facultyId;
+      if (!facultyId && req.user.id) {
+        const fac = (await db.getFacultyByUserId(req.user.id)) || (await db.getFacultyById(req.user.id));
+        if (fac) facultyId = String(fac.id);
+      }
+      const allStudents = facultyId ? await db.getStudentsByFaculty(facultyId) : [];
+      if (allStudents.length > 0) {
+        const sIds = allStudents.map((s) => s.id);
+        const placeholders = sIds.map(() => '?').join(', ');
+        const [rows]: any = await pool.query(
+          `SELECT * FROM internal_marks WHERE student_id IN (${placeholders}) ORDER BY created_at DESC LIMIT 300`,
+          sIds
+        );
+        return res.json(rows);
+      }
+      const [rows]: any = await pool.query('SELECT * FROM internal_marks ORDER BY created_at DESC LIMIT 100');
+      return res.json(rows);
     }
 
     // COE or ADMIN: return internal marks across students
-    const students = await db.getAllStudents();
-    const marks = (
-      await Promise.all(students.slice(0, 25).map((s) => db.getInternalMarksByStudent(s.id)))
-    ).flat();
+    const [marks]: any = await pool.query('SELECT * FROM internal_marks ORDER BY created_at DESC LIMIT 300');
     res.json(marks);
   } catch (err: any) {
     console.error('Get marks error:', err);

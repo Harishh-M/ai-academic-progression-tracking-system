@@ -60,8 +60,8 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ onNavigate }
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      api.getStudents(),
-      api.getFacultyReport(),
+      api.getStudents().catch(() => []),
+      api.getFacultyReport().catch(() => null),
       api.getAchievements().catch(() => []),
       api.getSemesters().catch(() => []),
       api.getCourses().catch(() => []),

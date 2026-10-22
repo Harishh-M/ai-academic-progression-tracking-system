@@ -107,10 +107,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab: propA
     setLoading(true);
     try {
       const [uData, fData, cData, sData, mData, stuData] = await Promise.all([
-        api.getAdminUsers(),
-        api.getAdminFaculty(),
-        api.getCourses(),
-        api.getSemesters(),
+        api.getAdminUsers().catch(() => []),
+        api.getAdminFaculty().catch(() => []),
+        api.getCourses().catch(() => []),
+        api.getSemesters().catch(() => []),
         api.getFacultyMappings().catch(() => []),
         api.getStudents().catch(() => []),
       ]);
@@ -298,7 +298,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab: propA
   const filteredUsers = users.filter((u) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
+    return (
+      (u.username || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.role || '').toLowerCase().includes(q)
+    );
   });
 
   return (

@@ -193,7 +193,7 @@ export class Database {
     // 1. Admin login ('admin')
     if (lower === 'admin') {
       const [rows] = await pool.query<RowDataPacket[]>(
-        'SELECT * FROM users WHERE LOWER(username) = "admin" OR role = "ADMIN" ORDER BY (LOWER(username) = "admin") DESC LIMIT 1'
+        "SELECT * FROM users WHERE LOWER(username) = 'admin' OR role = 'ADMIN' ORDER BY (LOWER(username) = 'admin') DESC LIMIT 1"
       );
       if (rows.length > 0) return rows[0] as User;
     }
@@ -201,7 +201,7 @@ export class Database {
     // 2. COE login ('coe')
     if (lower === 'coe') {
       const [rows] = await pool.query<RowDataPacket[]>(
-        'SELECT * FROM users WHERE LOWER(username) = "coe" OR role = "COE" ORDER BY (LOWER(username) = "coe") DESC LIMIT 1'
+        "SELECT * FROM users WHERE LOWER(username) = 'coe' OR role = 'COE' ORDER BY (LOWER(username) = 'coe') DESC LIMIT 1"
       );
       if (rows.length > 0) return rows[0] as User;
     }
@@ -255,56 +255,133 @@ export class Database {
 
   // ================= FACULTY =================
   async getFacultyById(id: string): Promise<Faculty | null> {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty WHERE id = ? LIMIT 1', [id]);
-    return rows.length > 0 ? (rows[0] as Faculty) : null;
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM faculty WHERE id = ? OR user_id = ? OR LOWER(faculty_code) = LOWER(?) LIMIT 1',
+      [id, id, id]
+    );
+    if (rows.length === 0) return null;
+    const f = rows[0];
+    return {
+      ...f,
+      id: String(f.id),
+      user_id: String(f.user_id),
+    } as Faculty;
   }
 
-  async getFacultyByUserId(userId: string): Promise<Faculty | null> {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty WHERE user_id = ? LIMIT 1', [userId]);
-    return rows.length > 0 ? (rows[0] as Faculty) : null;
+  async getFacultyByUserId(userId: string, username?: string, email?: string): Promise<Faculty | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT * FROM faculty 
+       WHERE user_id = ? 
+          OR id = ? 
+          OR LOWER(faculty_code) = LOWER(?)
+          OR LOWER(email) = LOWER(?)
+       LIMIT 1`,
+      [userId, userId, username || userId, email || '']
+    );
+    if (rows.length === 0) return null;
+    const f = rows[0];
+    return {
+      ...f,
+      id: String(f.id),
+      user_id: String(f.user_id),
+    } as Faculty;
   }
 
   async getAllFaculty(): Promise<Faculty[]> {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty');
-    return rows as Faculty[];
+    return rows.map((f) => ({
+      ...f,
+      id: String(f.id),
+      user_id: String(f.user_id),
+    })) as Faculty[];
   }
 
   // ================= STUDENTS =================
   async getStudentById(id: string): Promise<Student | null> {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM students WHERE id = ? LIMIT 1', [id]);
-    return rows.length > 0 ? (rows[0] as Student) : null;
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM students WHERE id = ? OR LOWER(register_number) = LOWER(?) OR LOWER(admission_number) = LOWER(?) LIMIT 1',
+      [id, id, id]
+    );
+    if (rows.length === 0) return null;
+    const s = rows[0];
+    return {
+      ...s,
+      id: String(s.id),
+      user_id: String(s.user_id),
+      assigned_faculty_id: s.assigned_faculty_id ? String(s.assigned_faculty_id) : undefined,
+    } as Student;
   }
 
-  async getStudentByUserId(userId: string): Promise<Student | null> {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM students WHERE user_id = ? LIMIT 1', [userId]);
-    return rows.length > 0 ? (rows[0] as Student) : null;
+  async getStudentByUserId(userId: string, username?: string, email?: string): Promise<Student | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT * FROM students 
+       WHERE user_id = ? 
+          OR id = ? 
+          OR LOWER(register_number) = LOWER(?)
+          OR LOWER(admission_number) = LOWER(?)
+          OR LOWER(email) = LOWER(?)
+       LIMIT 1`,
+      [userId, userId, username || userId, username || userId, email || '']
+    );
+    if (rows.length === 0) return null;
+    const s = rows[0];
+    return {
+      ...s,
+      id: String(s.id),
+      user_id: String(s.user_id),
+      assigned_faculty_id: s.assigned_faculty_id ? String(s.assigned_faculty_id) : undefined,
+    } as Student;
   }
 
   async getStudentByRegisterNumber(regNo: string): Promise<Student | null> {
     const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT * FROM students WHERE UPPER(register_number) = UPPER(?) LIMIT 1',
-      [regNo.trim()]
+      'SELECT * FROM students WHERE UPPER(register_number) = UPPER(?) OR id = ? LIMIT 1',
+      [regNo.trim(), regNo.trim()]
     );
-    return rows.length > 0 ? (rows[0] as Student) : null;
+    if (rows.length === 0) return null;
+    const s = rows[0];
+    return {
+      ...s,
+      id: String(s.id),
+      user_id: String(s.user_id),
+      assigned_faculty_id: s.assigned_faculty_id ? String(s.assigned_faculty_id) : undefined,
+    } as Student;
   }
 
   async getAllStudents(): Promise<Student[]> {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM students');
-    return rows as Student[];
+    return rows.map((s) => ({
+      ...s,
+      id: String(s.id),
+      user_id: String(s.user_id),
+      assigned_faculty_id: s.assigned_faculty_id ? String(s.assigned_faculty_id) : undefined,
+    })) as Student[];
   }
 
   async getStudentsByFaculty(facultyId: string): Promise<Student[]> {
+    const fac = (await this.getFacultyById(facultyId)) || (await this.getFacultyByUserId(facultyId));
+    const candidateIds = Array.from(
+      new Set([facultyId, fac?.id, fac?.faculty_code, fac?.user_id].filter(Boolean))
+    );
+
+    const placeholders = candidateIds.map(() => '?').join(',');
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT DISTINCT s.* FROM students s
-       WHERE s.assigned_faculty_id = ?
+       WHERE s.assigned_faculty_id IN (${placeholders})
           OR s.id IN (
             SELECT sc.student_id FROM student_courses sc
             INNER JOIN faculty_courses fc ON sc.course_id = fc.course_id
-            WHERE fc.faculty_id = ?
+            WHERE fc.faculty_id IN (${placeholders})
           )`,
-      [facultyId, facultyId]
+      [...candidateIds, ...candidateIds]
     );
-    return rows as Student[];
+
+    return rows.map((s) => ({
+      ...s,
+      id: String(s.id),
+      user_id: String(s.user_id),
+      assigned_faculty_id: s.assigned_faculty_id ? String(s.assigned_faculty_id) : undefined,
+    })) as Student[];
   }
 
   async createStudent(
@@ -490,7 +567,21 @@ export class Database {
   }
 
   async getFacultyCourses(facultyId: string): Promise<FacultyCourseMapping[]> {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM faculty_courses WHERE faculty_id = ?', [facultyId]);
+    if (!facultyId) return [];
+    const fac = await this.getFacultyById(facultyId);
+    const candidateIds = Array.from(new Set([
+      String(facultyId),
+      fac ? String(fac.id) : null,
+      fac?.faculty_code || null,
+      fac?.user_id || null,
+    ].filter(Boolean))) as string[];
+
+    if (candidateIds.length === 0) return [];
+    const placeholders = candidateIds.map(() => '?').join(', ');
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT * FROM faculty_courses WHERE faculty_id IN (${placeholders})`,
+      candidateIds
+    );
     return rows as FacultyCourseMapping[];
   }
 
@@ -1053,21 +1144,21 @@ export class Database {
     let sql = 'SELECT * FROM semester_results WHERE 1=1';
     const params: any[] = [];
 
-    if (filters?.semesterId) {
+    if (filters?.semesterId && filters.semesterId !== 'all') {
       sql += ' AND semester_id = ?';
       params.push(filters.semesterId);
     }
-    if (filters?.courseId) {
+    if (filters?.courseId && filters.courseId !== 'all') {
       sql += ' AND course_id = ?';
       params.push(filters.courseId);
     }
-    if (filters?.studentId) {
+    if (filters?.studentId && filters.studentId !== 'all') {
       sql += ' AND student_id = ?';
       params.push(filters.studentId);
     }
 
-    sql += ' ORDER BY id ASC LIMIT ?';
-    params.push(filters?.limit || 10000);
+    const limitNum = Math.max(1, Math.min(Number(filters?.limit) || 10000, 50000));
+    sql += ` ORDER BY id ASC LIMIT ${limitNum}`;
 
     const [rows] = await pool.query<RowDataPacket[]>(sql, params);
     return rows.map((r) => ({

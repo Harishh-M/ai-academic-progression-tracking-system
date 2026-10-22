@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db/database.js';
+import { pool } from '../db/mysql.js';
 import { requireAuth, requireFaculty, requireStudentSelfOrFaculty } from '../middleware/auth.js';
 import { calculateStudentMetrics } from '../services/academicCalculator.js';
 
@@ -56,28 +57,81 @@ reportRouter.get('/student/:studentId', requireAuth, requireStudentSelfOrFaculty
 // GET /api/reports/faculty - Faculty cohort analysis report
 reportRouter.get('/faculty', requireAuth, requireFaculty, async (req, res) => {
   try {
-    const facultyId = req.user!.facultyId!;
-    const faculty = await db.getFacultyById(facultyId);
-    const assignedStudents = await db.getStudentsByFaculty(facultyId);
+    let facultyId = req.user?.facultyId;
+    let faculty = facultyId ? await db.getFacultyById(facultyId) : null;
+    if (!faculty && req.user?.id) {
+      faculty = (await db.getFacultyByUserId(req.user.id)) || (await db.getFacultyById(req.user.id));
+      if (faculty) facultyId = String(faculty.id);
+    }
 
-    const studentSummaries = await Promise.all(
-      assignedStudents.map(async (s) => {
-        const m = await calculateStudentMetrics(s.id);
-        return {
-          id: s.id,
-          regNo: s.register_number,
-          name: s.student_name,
-          programme: s.programme,
-          batch: s.batch,
-          cgpa: m.cgpa,
-          currentSGPA: m.currentSGPA,
-          attendancePercentage: m.attendancePercentage,
-          currentArrears: m.currentArrears,
-          riskLevel: m.riskLevel,
-          performanceStatus: m.performanceStatus,
-        };
-      })
+    let assignedStudents = facultyId ? await db.getStudentsByFaculty(facultyId) : [];
+    if (assignedStudents.length === 0 && faculty?.department) {
+      const all = await db.getAllStudents();
+      assignedStudents = all.filter((s) => s.department === faculty.department);
+    }
+    if (assignedStudents.length === 0) {
+      assignedStudents = await db.getAllStudents();
+    }
+
+    const [attRows]: any = await pool.query(
+      "SELECT student_id, COUNT(*) as total, SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present FROM attendance GROUP BY student_id"
     );
+    const [resRows]: any = await pool.query(
+      "SELECT student_id, SUM(credits * grade_point) as weighted_points, SUM(credits) as total_credits, SUM(CASE WHEN result_status = 'Fail' THEN 1 ELSE 0 END) as arrears FROM semester_results GROUP BY student_id"
+    );
+
+    const attMap = new Map<string, any>();
+    for (const r of attRows) {
+      if (r.student_id !== undefined && r.student_id !== null) {
+        attMap.set(String(r.student_id), r);
+      }
+    }
+    const resMap = new Map<string, any>();
+    for (const r of resRows) {
+      if (r.student_id !== undefined && r.student_id !== null) {
+        resMap.set(String(r.student_id), r);
+      }
+    }
+
+    const studentSummaries = assignedStudents.map((s) => {
+      const sId = String(s.id);
+      const regNo = s.register_number ? String(s.register_number) : '';
+      const att = attMap.get(sId) || (regNo ? attMap.get(regNo) : null);
+      const res = resMap.get(sId) || (regNo ? resMap.get(regNo) : null);
+
+      const totalClasses = att ? Number(att.total) : 0;
+      const presentClasses = att ? Number(att.present) : 0;
+      const attendancePercentage = totalClasses > 0 ? Math.round((presentClasses / totalClasses) * 1000) / 10 : 0;
+
+      const weightedPoints = res ? Number(res.weighted_points) : 0;
+      const totalCredits = res ? Number(res.total_credits) : 0;
+      const cgpa = totalCredits > 0 ? Math.round((weightedPoints / totalCredits) * 100) / 100 : 0;
+      const currentArrears = res ? Number(res.arrears) : 0;
+
+      let riskLevel = 'Low';
+      if (attendancePercentage < 75 || currentArrears >= 2 || (cgpa > 0 && cgpa < 5.0)) riskLevel = 'High';
+      else if (attendancePercentage < 80 || currentArrears === 1 || (cgpa > 0 && cgpa < 6.5)) riskLevel = 'Medium';
+
+      let performanceStatus = 'Average';
+      if (cgpa >= 8.5) performanceStatus = 'Excellent';
+      else if (cgpa >= 7.0) performanceStatus = 'Good';
+      else if (cgpa >= 6.0) performanceStatus = 'Average';
+      else performanceStatus = 'Needs Improvement';
+
+      return {
+        id: s.id,
+        regNo: s.register_number,
+        name: s.student_name,
+        programme: s.programme,
+        batch: s.batch,
+        cgpa,
+        currentSGPA: cgpa,
+        attendancePercentage,
+        currentArrears,
+        riskLevel,
+        performanceStatus,
+      };
+    });
 
     const total = studentSummaries.length;
     const avgCgpa = total > 0 ? Math.round((studentSummaries.reduce((acc, s) => acc + s.cgpa, 0) / total) * 100) / 100 : 0;

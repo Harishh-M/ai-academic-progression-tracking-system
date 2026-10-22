@@ -13,6 +13,65 @@ import { Student } from '../../src/types/index.js';
 
 export const studentRouter = Router();
 
+async function enrichStudentsWithMetrics(students: any[]): Promise<any[]> {
+  if (students.length === 0) return [];
+  const [attRows]: any = await pool.query(
+    "SELECT student_id, COUNT(*) as total, SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present FROM attendance GROUP BY student_id"
+  );
+  const [resRows]: any = await pool.query(
+    "SELECT student_id, SUM(credits * grade_point) as weighted_points, SUM(credits) as total_credits, SUM(CASE WHEN result_status = 'Fail' THEN 1 ELSE 0 END) as arrears FROM semester_results GROUP BY student_id"
+  );
+
+  const attMap = new Map<string, any>();
+  for (const r of attRows) {
+    if (r.student_id !== undefined && r.student_id !== null) {
+      attMap.set(String(r.student_id), r);
+    }
+  }
+  const resMap = new Map<string, any>();
+  for (const r of resRows) {
+    if (r.student_id !== undefined && r.student_id !== null) {
+      resMap.set(String(r.student_id), r);
+    }
+  }
+
+  return students.map((s) => {
+    const sId = String(s.id);
+    const regNo = s.register_number ? String(s.register_number) : '';
+    const att = attMap.get(sId) || (regNo ? attMap.get(regNo) : null);
+    const res = resMap.get(sId) || (regNo ? resMap.get(regNo) : null);
+
+    const totalClasses = att ? Number(att.total) : 0;
+    const presentClasses = att ? Number(att.present) : 0;
+    const attendancePercentage = totalClasses > 0 ? Math.round((presentClasses / totalClasses) * 1000) / 10 : 0;
+
+    const weightedPoints = res ? Number(res.weighted_points) : 0;
+    const totalCredits = res ? Number(res.total_credits) : 0;
+    const cgpa = totalCredits > 0 ? Math.round((weightedPoints / totalCredits) * 100) / 100 : 0;
+    const currentArrears = res ? Number(res.arrears) : 0;
+
+    let riskLevel = 'Low';
+    if (attendancePercentage < 75 || currentArrears >= 2 || (cgpa > 0 && cgpa < 5.0)) riskLevel = 'High';
+    else if (attendancePercentage < 80 || currentArrears === 1 || (cgpa > 0 && cgpa < 6.5)) riskLevel = 'Medium';
+
+    let performanceStatus = 'Average';
+    if (cgpa >= 8.5) performanceStatus = 'Excellent';
+    else if (cgpa >= 7.0) performanceStatus = 'Good';
+    else if (cgpa >= 6.0) performanceStatus = 'Average';
+    else performanceStatus = 'Needs Improvement';
+
+    return {
+      ...s,
+      cgpa,
+      currentSGPA: cgpa,
+      attendancePercentage,
+      currentArrears,
+      riskLevel,
+      performanceStatus,
+    };
+  });
+}
+
 // GET /api/students - List students (Faculty, COE, Admin only; strictly forbidden for STUDENT)
 studentRouter.get('/', requireAuth, requireFacultyOrCOEOrAdmin, async (req, res) => {
   try {
@@ -47,67 +106,7 @@ studentRouter.get('/', requireAuth, requireFacultyOrCOEOrAdmin, async (req, res)
     }
 
     // Attach calculated summary metrics to each student for the management table
-    let enriched: Array<any>;
-    if (students.length > 20) {
-      const [attRows]: any = await pool.query(
-        'SELECT student_id, COUNT(*) as total, SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present FROM attendance GROUP BY student_id'
-      );
-      const [resRows]: any = await pool.query(
-        'SELECT student_id, SUM(credits * grade_point) as weighted_points, SUM(credits) as total_credits, SUM(CASE WHEN result_status = "Fail" THEN 1 ELSE 0 END) as arrears FROM semester_results GROUP BY student_id'
-      );
-
-      const attMap = new Map<string, any>(attRows.map((r: any) => [String(r.student_id), r]));
-      const resMap = new Map<string, any>(resRows.map((r: any) => [String(r.student_id), r]));
-
-      enriched = students.map((s) => {
-        const att = attMap.get(String(s.id));
-        const res = resMap.get(String(s.id));
-
-        const totalClasses = att ? Number(att.total) : 0;
-        const presentClasses = att ? Number(att.present) : 0;
-        const attendancePercentage = totalClasses > 0 ? Math.round((presentClasses / totalClasses) * 1000) / 10 : 0;
-
-        const weightedPoints = res ? Number(res.weighted_points) : 0;
-        const totalCredits = res ? Number(res.total_credits) : 0;
-        const cgpa = totalCredits > 0 ? Math.round((weightedPoints / totalCredits) * 100) / 100 : 0;
-        const currentArrears = res ? Number(res.arrears) : 0;
-
-        let riskLevel = 'Low';
-        if (attendancePercentage < 75 || currentArrears >= 2 || (cgpa > 0 && cgpa < 5.0)) riskLevel = 'High';
-        else if (attendancePercentage < 80 || currentArrears === 1 || (cgpa > 0 && cgpa < 6.5)) riskLevel = 'Medium';
-
-        let performanceStatus = 'Average';
-        if (cgpa >= 8.5) performanceStatus = 'Excellent';
-        else if (cgpa >= 7.0) performanceStatus = 'Good';
-        else if (cgpa >= 6.0) performanceStatus = 'Average';
-        else performanceStatus = 'Needs Improvement';
-
-        return {
-          ...s,
-          cgpa,
-          currentSGPA: cgpa,
-          attendancePercentage,
-          currentArrears,
-          riskLevel,
-          performanceStatus,
-        };
-      });
-    } else {
-      enriched = await Promise.all(
-        students.map(async (s) => {
-          const metrics = await calculateStudentMetrics(s.id);
-          return {
-            ...s,
-            cgpa: metrics.cgpa,
-            currentSGPA: metrics.currentSGPA,
-            attendancePercentage: metrics.attendancePercentage,
-            currentArrears: metrics.currentArrears,
-            riskLevel: metrics.riskLevel,
-            performanceStatus: metrics.performanceStatus,
-          };
-        })
-      );
-    }
+    const enriched = await enrichStudentsWithMetrics(students);
 
     if (risk && typeof risk === 'string') {
       const filteredByRisk = enriched.filter((s) => s.riskLevel.toLowerCase() === (risk as string).toLowerCase());
@@ -124,25 +123,17 @@ studentRouter.get('/', requireAuth, requireFacultyOrCOEOrAdmin, async (req, res)
 // GET /api/students/assigned - Get students assigned to logged-in faculty
 studentRouter.get('/assigned', requireAuth, requireFaculty, async (req, res) => {
   try {
-    if (!req.user?.facultyId) {
+    let facultyId = req.user?.facultyId;
+    if (!facultyId && req.user?.id) {
+      const fac = (await db.getFacultyByUserId(req.user.id)) || (await db.getFacultyById(req.user.id));
+      if (fac) facultyId = String(fac.id);
+    }
+    if (!facultyId) {
       return res.status(400).json({ error: 'Faculty ID not associated with account' });
     }
 
-    const students = await db.getStudentsByFaculty(req.user.facultyId);
-    const enriched = await Promise.all(
-      students.map(async (s) => {
-        const metrics = await calculateStudentMetrics(s.id);
-        return {
-          ...s,
-          cgpa: metrics.cgpa,
-          currentSGPA: metrics.currentSGPA,
-          attendancePercentage: metrics.attendancePercentage,
-          currentArrears: metrics.currentArrears,
-          riskLevel: metrics.riskLevel,
-          performanceStatus: metrics.performanceStatus,
-        };
-      })
-    );
+    const students = await db.getStudentsByFaculty(facultyId);
+    const enriched = await enrichStudentsWithMetrics(students);
 
     res.json(enriched);
   } catch (err: any) {

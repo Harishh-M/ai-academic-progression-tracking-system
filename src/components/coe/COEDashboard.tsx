@@ -131,9 +131,18 @@ export const COEDashboard: React.FC = () => {
     try {
       const activeSem = semId !== undefined ? semId : selectedSemester;
       const [resData, courseData, semData, studentsData, facultyData] = await Promise.all([
-        api.getResults({ semesterId: activeSem !== 'all' ? activeSem : undefined }),
-        api.getCourses(),
-        api.getSemesters(),
+        api.getResults({ semesterId: activeSem !== 'all' ? activeSem : undefined }).catch((e) => {
+          console.warn('Failed to load results:', e);
+          return [];
+        }),
+        api.getCourses().catch((e) => {
+          console.warn('Failed to load courses:', e);
+          return [];
+        }),
+        api.getSemesters().catch((e) => {
+          console.warn('Failed to load semesters:', e);
+          return [];
+        }),
         api.getStudents().catch((e) => {
           console.error('Failed to load students:', e);
           setNotification({ type: 'error', message: 'Failed to retrieve student records: ' + (e.message || String(e)) });
@@ -209,11 +218,11 @@ export const COEDashboard: React.FC = () => {
     if (search.trim()) {
       const q = search.toLowerCase();
       const course = courseMap.get(r.course_id);
-      const matchStuId = r.student_id.toLowerCase().includes(q);
-      const matchStuReg = stu?.register_number?.toLowerCase().includes(q);
-      const matchStuName = stu?.student_name?.toLowerCase().includes(q);
+      const matchStuId = String(r.student_id || '').toLowerCase().includes(q);
+      const matchStuReg = (stu?.register_number || '').toLowerCase().includes(q);
+      const matchStuName = (stu?.student_name || '').toLowerCase().includes(q);
       const matchCourse =
-        course?.course_name.toLowerCase().includes(q) || course?.course_code.toLowerCase().includes(q);
+        (course?.course_name || '').toLowerCase().includes(q) || (course?.course_code || '').toLowerCase().includes(q);
       if (!matchStuId && !matchStuReg && !matchStuName && !matchCourse) return false;
     }
     return true;
