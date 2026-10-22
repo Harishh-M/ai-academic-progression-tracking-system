@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.js';
 import { Student } from '../../types/index.js';
 import { RiskBadge, PerformanceBadge } from '../common/RiskBadge.js';
 import {
@@ -23,6 +24,10 @@ import {
   Phone,
   MapPin,
   X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 
 interface FacultyStudentsViewProps {
@@ -34,12 +39,18 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
   onNavigateToStudentProgress,
   onNavigateToAI,
 }) => {
+  const { profile, role } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(
+    role === 'FACULTY' ? ((profile as any)?.department || '') : ''
+  );
   const [selectedBatch, setSelectedBatch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedRisk, setSelectedRisk] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Modals
   const [dossierStudent, setDossierStudent] = useState<any | null>(null);
@@ -53,6 +64,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
     api
       .getStudents({
         search: search || undefined,
+        department: selectedDepartment || undefined,
         batch: selectedBatch || undefined,
         status: selectedStatus || undefined,
         risk: selectedRisk || undefined,
@@ -63,8 +75,9 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchStudents();
-  }, [search, selectedBatch, selectedStatus, selectedRisk]);
+  }, [search, selectedDepartment, selectedBatch, selectedStatus, selectedRisk]);
 
   const handleSaveStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,7 +159,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
       )}
 
       {/* Filter & Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         {/* Search */}
         <div className="relative lg:col-span-2">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -160,6 +173,38 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
           />
         </div>
 
+        {/* Department Filter */}
+        <div>
+          <select
+            id="select-department-filter"
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
+          >
+            <option value="">All Departments</option>
+            <option value="Agricultural Engineering">Agricultural Engineering</option>
+            <option value="Artificial Intelligence and Data Science">AI & Data Science</option>
+            <option value="Artificial Intelligence and Machine Learning">AI & Machine Learning</option>
+            <option value="Biomedical Engineering">Biomedical Engineering</option>
+            <option value="Biotechnology">Biotechnology</option>
+            <option value="Civil Engineering">Civil Engineering</option>
+            <option value="Computer Science & Business Systems">Computer Science & Business Systems</option>
+            <option value="Computer Science & Design">Computer Science & Design</option>
+            <option value="Computer Science and Engineering">Computer Science & Engg</option>
+            <option value="Computer Technology">Computer Technology</option>
+            <option value="Electrical and Electronics Engineering">Electrical & Electronics Engg</option>
+            <option value="Electronics and Communication Engineering">Electronics & Comm Engg</option>
+            <option value="Electronics & Instrumentation Engineering">Electronics & Instrumentation</option>
+            <option value="Fashion Technology">Fashion Technology</option>
+            <option value="Food Technology">Food Technology</option>
+            <option value="Information Science & Engineering">Information Science & Engg</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Mechanical Engineering">Mechanical Engineering</option>
+            <option value="Mechatronics Engineering">Mechatronics Engineering</option>
+            <option value="Textile Technology">Textile Technology</option>
+          </select>
+        </div>
+
         {/* Batch Filter */}
         <div>
           <select
@@ -169,6 +214,7 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
           >
             <option value="">All Batches</option>
+            <option value="2024-2028">Batch 2024-2028</option>
             <option value="2023-2027">Batch 2023-2027</option>
             <option value="2022-2026">Batch 2022-2026</option>
             <option value="2021-2025">Batch 2021-2025</option>
@@ -209,131 +255,236 @@ export const FacultyStudentsView: React.FC<FacultyStudentsViewProps> = ({
       </div>
 
       {/* Student List Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Showing {students.length} Student Record(s)
-          </span>
-          <span className="text-xs text-slate-400">Institutional Database Connected</span>
-        </div>
+      {(() => {
+        const totalPages = Math.max(1, Math.ceil(students.length / pageSize));
+        const paginatedStudents = pageSize === -1 ? students : students.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+        const startIdx = students.length === 0 ? 0 : (currentPage - 1) * (pageSize === -1 ? students.length : pageSize) + 1;
+        const endIdx = pageSize === -1 ? students.length : Math.min(currentPage * pageSize, students.length);
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3">Register No</th>
-                <th className="px-4 py-3">Student Name</th>
-                <th className="px-4 py-3">Branch & Batch</th>
-                <th className="px-4 py-3 text-center">CGPA</th>
-                <th className="px-4 py-3 text-center">Attendance</th>
-                <th className="px-4 py-3 text-center">Arrears</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3 text-center">Risk Tier</th>
-                <th className="px-4 py-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
-                    <div className="w-6 h-6 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    Loading institutional student records...
-                  </td>
-                </tr>
-              ) : students.length > 0 ? (
-                students.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50/70 transition">
-                    <td className="px-4 py-3 font-mono font-bold text-[#1E3A5F]">{s.register_number}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">{s.student_name}</div>
-                      <div className="text-[11px] text-slate-400">{s.email}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800">{s.branch_code}</div>
-                      <div className="text-[11px] text-slate-400">{s.batch}</div>
-                    </td>
-                    <td className="px-4 py-3 text-center font-mono font-bold text-slate-900">
-                      {s.cgpa ? s.cgpa.toFixed(2) : '0.00'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`font-semibold ${
-                          s.attendancePercentage >= 75 ? 'text-slate-800' : 'text-[#B94A48] font-bold'
-                        }`}
-                      >
-                        {s.attendancePercentage}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                          s.currentArrears === 0
-                            ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
-                            : 'bg-red-50 text-[#B94A48] border-red-200'
-                        }`}
-                      >
-                        {s.currentArrears}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${
-                          s.current_status === 'Continuing'
-                            ? 'bg-blue-50 text-[#3B6EA5] border-blue-200'
-                            : s.current_status === 'Completed'
-                            ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
-                            : 'bg-red-50 text-[#B94A48] border-red-200'
-                        }`}
-                      >
-                        {s.current_status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <RiskBadge level={s.riskLevel} />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => setDossierStudent(s)}
-                          title="View Full Profile Dossier"
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setIsCreatingNew(false);
-                            setEditModalStudent({ ...s });
-                          }}
-                          title="Edit Student Record"
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] transition"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        {onNavigateToAI && (
-                          <button
-                            onClick={() => onNavigateToAI(s.id)}
-                            title="Run AI Advisor"
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] transition"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+        return (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Student Records ({students.length})
+                </span>
+                {students.length > 0 && (
+                  <span className="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium">
+                    Showing {startIdx}–{endIdx} of {students.length}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-500">Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3">Register No</th>
+                    <th className="px-4 py-3">Student Name</th>
+                    <th className="px-4 py-3">Branch & Batch</th>
+                    <th className="px-4 py-3 text-center">CGPA</th>
+                    <th className="px-4 py-3 text-center">Attendance</th>
+                    <th className="px-4 py-3 text-center">Arrears</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 text-center">Risk Tier</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
-                    No students match the selected criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
+                        <div className="w-6 h-6 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        Loading institutional student records...
+                      </td>
+                    </tr>
+                  ) : paginatedStudents.length > 0 ? (
+                    paginatedStudents.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50/70 transition">
+                        <td className="px-4 py-3 font-mono font-bold text-[#1E3A5F]">{s.register_number}</td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-slate-900">{s.student_name}</div>
+                          <div className="text-[11px] text-slate-400">{s.email}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-slate-800">{s.branch_code}</div>
+                          <div className="text-[11px] text-slate-400">{s.batch}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono font-bold text-slate-900">
+                          {s.cgpa ? s.cgpa.toFixed(2) : '0.00'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`font-semibold ${
+                              s.attendancePercentage >= 75 ? 'text-slate-800' : 'text-[#B94A48] font-bold'
+                            }`}
+                          >
+                            {s.attendancePercentage}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                              s.currentArrears === 0
+                                ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                                : 'bg-red-50 text-[#B94A48] border-red-200'
+                            }`}
+                          >
+                            {s.currentArrears}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${
+                              s.current_status === 'Continuing'
+                                ? 'bg-blue-50 text-[#3B6EA5] border-blue-200'
+                                : s.current_status === 'Completed'
+                                ? 'bg-emerald-50 text-[#3F7D58] border-emerald-200'
+                                : 'bg-red-50 text-[#B94A48] border-red-200'
+                            }`}
+                          >
+                            {s.current_status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <RiskBadge level={s.riskLevel} />
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => setDossierStudent(s)}
+                              title="View Full Profile Dossier"
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setIsCreatingNew(false);
+                                setEditModalStudent({ ...s });
+                              }}
+                              title="Edit Student Record"
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] transition cursor-pointer"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            {onNavigateToAI && (
+                              <button
+                                onClick={() => onNavigateToAI(s.id)}
+                                title="Run AI Advisor"
+                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] transition cursor-pointer"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
+                        No students match the selected criteria.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <span className="text-slate-500">
+                  Page <strong className="text-slate-800">{currentPage}</strong> of{' '}
+                  <strong className="text-slate-800">{totalPages}</strong>
+                </span>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    title="First Page"
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronsLeft className="w-4 h-4 text-slate-600" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    title="Previous Page"
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-slate-600" />
+                  </button>
+
+                  {/* Page number buttons */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+                    let pageNum = currentPage;
+                    if (currentPage <= 3) {
+                      pageNum = idx + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + idx;
+                    } else {
+                      pageNum = currentPage - 2 + idx;
+                    }
+                    if (pageNum < 1 || pageNum > totalPages) return null;
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                          currentPage === pageNum
+                            ? 'bg-[#1E3A5F] text-white shadow-xs'
+                            : 'border border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    title="Next Page"
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    title="Last Page"
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronsRight className="w-4 h-4 text-slate-600" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Student Dossier Modal */}
       {dossierStudent && (

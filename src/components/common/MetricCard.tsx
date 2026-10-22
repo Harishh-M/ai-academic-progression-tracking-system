@@ -11,7 +11,7 @@ interface MetricCardProps {
     text: string;
     isPositive?: boolean;
   };
-  accentColor?: 'blue' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'purple';
+  accentColor?: 'blue' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'purple' | 'primary' | 'secondary' | 'warning' | 'danger';
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -23,9 +23,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   trend,
   accentColor = 'indigo',
 }) => {
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     blue: 'bg-blue-50/70 text-[#3B6EA5] border-blue-200/60',
     indigo: 'bg-slate-100 text-[#1E3A5F] border-slate-200',
+    primary: 'bg-slate-100 text-[#1E3A5F] border-slate-200',
+    secondary: 'bg-blue-50/70 text-[#3B6EA5] border-blue-200/60',
+    warning: 'bg-amber-50/70 text-[#B7791F] border-amber-200/60',
+    danger: 'bg-rose-50/70 text-[#B94A48] border-rose-200/60',
     emerald: 'bg-emerald-50/70 text-[#3F7D58] border-emerald-200/60',
     amber: 'bg-amber-50/70 text-[#B7791F] border-amber-200/60',
     rose: 'bg-rose-50/70 text-[#B94A48] border-rose-200/60',

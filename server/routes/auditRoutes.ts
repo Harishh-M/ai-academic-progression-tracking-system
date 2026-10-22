@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { db } from '../db/database.js';
-import { requireAuth, requireFaculty } from '../middleware/auth.js';
+import { requireAuth, requireFacultyOrCOEOrAdmin } from '../middleware/auth.js';
 
 export const auditRouter = Router();
 
-// GET /api/audit-logs - Faculty view of audit trails
-auditRouter.get('/', requireAuth, requireFaculty, async (_req, res) => {
+// GET /api/audit-logs - Accessible to Faculty, COE, and Admin
+auditRouter.get('/', requireAuth, requireFacultyOrCOEOrAdmin, async (_req, res) => {
   try {
     const logs = await db.getAllAuditLogs();
     res.json(logs);

@@ -42,10 +42,20 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('erp_token'));
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('erp_token');
+    } catch {
+      return null;
+    }
+  });
   const [user, setUser] = useState<AuthUser | null>(() => {
-    const saved = localStorage.getItem('erp_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('erp_user');
+      return saved && saved !== 'undefined' && saved !== 'null' ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -54,12 +64,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (token) {
         const res = await api.getMe();
-        setUser(res.user);
-        setProfile(res.profile);
-        localStorage.setItem('erp_user', JSON.stringify(res.user));
+        if (res && res.user) {
+          setUser(res.user);
+          setProfile(res.profile);
+          try {
+            localStorage.setItem('erp_user', JSON.stringify(res.user));
+          } catch {
+            // ignore storage quota error
+          }
+        } else {
+          logout();
+        }
       }
     } catch (err) {
-      console.warn('Session verification failed, resetting token');
+      console.warn('Session verification failed, resetting token:', err);
       logout();
     } finally {
       setIsLoading(false);

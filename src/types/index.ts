@@ -131,6 +131,47 @@ export interface AttendanceRecord {
   updated_at: string;
 }
 
+export interface DailyAttendanceSession {
+  id: string;
+  type: 'biometric_in' | 'period' | 'biometric_out';
+  periodNumber?: number; // 1 to 7
+  timing: string; // e.g. "08:45 am to 09:35 am"
+  slot: 'Biometric Morning' | 'Forenoon' | 'Afternoon' | 'Biometric Evening';
+  courseCode?: string;
+  courseName?: string;
+  markedBy: string; // e.g. "Sri Priyanka HU11211" or "Biometric Terminal #02 (Gate 1)"
+  facultyCode?: string;
+  status: 'Present' | 'Absent' | 'On Duty' | 'Late';
+  timestamp?: string;
+  actionAvailable?: boolean;
+}
+
+export interface DayAttendanceSummary {
+  date: string; // YYYY-MM-DD
+  dayOfWeek: string;
+  dayNumber: number;
+  totalPeriods: number;
+  presentPeriods: number;
+  absentPeriods: number;
+  biometricIn: boolean;
+  biometricOut: boolean;
+  status: 'FULL_PRESENT' | 'PARTIAL' | 'ABSENT' | 'WEEKEND' | 'HOLIDAY';
+}
+
+export interface AttendanceDisputeRequest {
+  id: string;
+  studentId: string;
+  studentName: string;
+  date: string;
+  periodNumber?: number;
+  courseCode?: string;
+  sessionTitle: string;
+  reason: string;
+  evidenceNote?: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  createdAt: string;
+}
+
 export interface InternalMarkRecord {
   id: string;
   student_id: string;
@@ -162,13 +203,31 @@ export interface SemesterResultRecord {
 export type AchievementCategory =
   | 'Academic'
   | 'Technical'
+  | 'Technical Symposium'
   | 'Sports'
   | 'Cultural'
   | 'Research'
+  | 'Paper Presentation'
+  | 'Project Competition'
   | 'Hackathon'
+  | 'Coding'
+  | 'Workshop'
+  | 'Internship'
   | 'Certification'
   | 'Leadership'
   | 'Other';
+
+export interface VerificationLink {
+  label: string;
+  url: string;
+  verified?: boolean;
+}
+
+export interface DynamicField {
+  id: string;
+  key: string;
+  value: string;
+}
 
 export interface AchievementRecord {
   id: string;
@@ -183,6 +242,9 @@ export interface AchievementRecord {
   verified_by?: string; // faculty_id
   created_at: string;
   updated_at: string;
+  // Dynamic fields and verification links
+  dynamic_fields?: Record<string, string>;
+  verification_links?: VerificationLink[];
 }
 
 export interface AuditLogRecord {
@@ -191,11 +253,15 @@ export interface AuditLogRecord {
   role: UserRole;
   user_name: string;
   action: string;
+  action_type?: string;
   entity_type: string;
+  entity_name?: string;
   entity_id: string;
   old_value?: string;
+  previous_value?: any;
   new_value?: string;
   timestamp: string;
+  created_at?: string;
   ip_address: string;
 }
 
@@ -259,6 +325,12 @@ export interface CalculatedAcademicMetrics {
   riskReasons: string[];
   totalAchievements: number;
   verifiedAchievements: number;
+  totalEarnedCredits?: number;
+  totalRegisteredCredits?: number;
+  degreeRequiredCredits?: number;
+  degreeProgressPercentage?: number;
+  projectedClassification?: string;
+  honoursEligibility?: boolean;
 }
 
 export interface AIAnalysisResult {
@@ -273,6 +345,71 @@ export interface AIAnalysisResult {
   riskReasons: string[];
   personalizedRecommendations: string[];
   suggestedAreasForImprovement: string[];
+  // Extended fields for Real Gemini Academic Intelligence
+  overallAssessment?: string;
+  performanceLevel?: 'Excellent' | 'Good' | 'Needs Improvement' | 'Insufficient Data';
+  trajectoryExplanation?: string;
+  diagnosticRationale?: string;
+  structuredStrengths?: AcademicStrength[];
+  attentionAreas?: AcademicAttentionArea[];
+  structuredRecommendations?: AcademicRecommendation[];
+  dataLimitations?: string[];
+}
+
+export type AcademicPerformanceLevel = 'Excellent' | 'Good' | 'Needs Improvement' | 'Insufficient Data';
+export type AcademicRiskLevel = 'Low' | 'Medium' | 'High' | 'Insufficient Data';
+export type RecommendationPriority = 'High' | 'Medium' | 'Low';
+
+export interface AcademicStrength {
+  title: string;
+  evidence: string;
+}
+
+export interface AcademicAttentionArea {
+  subject: string;
+  issue: string;
+  evidence: string;
+  suggestedAction: string;
+}
+
+export interface AcademicRecommendation {
+  title: string;
+  reason: string;
+  action: string;
+  priority: RecommendationPriority;
+}
+
+export interface AcademicIntelligenceData {
+  overallAssessment: string;
+  performanceLevel: AcademicPerformanceLevel;
+  riskLevel: AcademicRiskLevel;
+  trajectoryExplanation: string;
+  diagnosticRationale: string;
+  strengths: AcademicStrength[];
+  attentionAreas: AcademicAttentionArea[];
+  recommendations: AcademicRecommendation[];
+  dataLimitations: string[];
+}
+
+export interface AcademicIntelligenceAnalysis extends AcademicIntelligenceData {
+  id?: string;
+  studentId: string;
+  generatedAt: string;
+  engine: string;
+  // Legacy compatibility
+  summary?: string;
+  weakSubjects?: string[];
+  performanceTrendExplanation?: string;
+  riskReasons?: string[];
+  personalizedRecommendations?: string[];
+  suggestedAreasForImprovement?: string[];
+}
+
+export interface AcademicIntelligenceResponse {
+  success: boolean;
+  engine: string;
+  generatedAt: string;
+  data: AcademicIntelligenceData;
 }
 
 export interface ChatMessage {

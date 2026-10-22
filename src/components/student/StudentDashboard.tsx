@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   ArrowUpRight,
 } from 'lucide-react';
+import { AIGeneratingAnimation } from '../common/AIGeneratingAnimation.js';
 import {
   LineChart,
   Line,
@@ -72,8 +73,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
   const handleRefreshAI = async () => {
     if (!user?.studentId) return;
     setAiLoading(true);
+    const minDelay = new Promise((resolve) => setTimeout(resolve, 3000));
     try {
-      const fresh = await api.triggerAIAnalysis(user.studentId);
+      const [fresh] = await Promise.all([
+        api.triggerAIAnalysis(user.studentId),
+        minDelay,
+      ]);
       setAiAnalysis(fresh);
     } catch (err) {
       console.error(err);
@@ -212,6 +217,114 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
         </div>
       )}
 
+      {/* Academic Degree Progression & Credit Audit Summary */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-50 text-[#1E3A5F]">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 text-base">Academic Degree Progression & Credit Audit</h3>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-800">
+                  {metrics.projectedClassification || (metrics.cgpa >= 8.5 ? 'First Class with Distinction' : 'First Class')}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Curriculum credit load clearance and projected degree honours standing
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('academic-progress')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition cursor-pointer self-start md:self-center"
+          >
+            <span>Full Progression Tracker</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-1">
+          {/* Credits Earned */}
+          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+              Curriculum Credits Earned
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-extrabold text-[#1E3A5F]">
+                {metrics.totalEarnedCredits ?? metrics.semesterSGPA?.reduce((a, s) => a + s.earnedCredits, 0) ?? 0}
+              </span>
+              <span className="text-xs font-semibold text-slate-400">/ 165 Required</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2.5 overflow-hidden">
+              <div
+                className="bg-[#1E3A5F] h-1.5 rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round(
+                      ((metrics.totalEarnedCredits ?? metrics.semesterSGPA?.reduce((a, s) => a + s.earnedCredits, 0) ?? 0) /
+                        165) *
+                        100
+                    )
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Completed Semesters */}
+          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+              Semesters Evaluated
+            </span>
+            <div className="text-2xl font-extrabold text-slate-900">
+              {metrics.semesterSGPA?.length || 0}
+              <span className="text-xs font-semibold text-slate-400 ml-1">/ 8 Semesters</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 font-medium">
+              Year {Math.min(4, Math.ceil(((metrics.semesterSGPA?.length || 1) + 1) / 2))} in progress
+            </p>
+          </div>
+
+          {/* Honours Eligibility */}
+          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+              Honours / Distinction
+            </span>
+            <div className="text-sm font-extrabold text-purple-900 mt-1">
+              {metrics.cgpa >= 8.5 && metrics.currentArrears === 0 && metrics.clearedArrears === 0
+                ? '★ Honours Eligible'
+                : metrics.cgpa >= 6.5
+                ? 'First Class Stream'
+                : 'Second Class Stream'}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 font-medium">
+              Zero lifetime arrears criterion
+            </p>
+          </div>
+
+          {/* Backlog Standing */}
+          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+              Degree Backlog Status
+            </span>
+            <div
+              className={`text-sm font-extrabold mt-1 ${
+                metrics.currentArrears === 0 ? 'text-emerald-700' : 'text-rose-700'
+              }`}
+            >
+              {metrics.currentArrears === 0 ? '✓ 100% Courses Cleared' : `${metrics.currentArrears} Pending Arrear`}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 font-medium">
+              {metrics.currentArrears === 0 ? 'Eligible for degree award' : 'Remedial registration required'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Charts Section: CGPA Progression Line Chart & Semester SGPA Bar Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* CGPA Progression */}
@@ -305,7 +418,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Synthesized from verified ERP records • Generated on {new Date(aiAnalysis?.timestamp || Date.now()).toLocaleDateString()}
+                Synthesized from verified ERP records • Generated on {new Date((aiAnalysis as any)?.generatedAt || (aiAnalysis as any)?.timestamp || Date.now()).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -332,13 +445,21 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
           </div>
         </div>
 
-        {/* AI Performance Summary */}
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-sm text-slate-800 leading-relaxed">
-          {aiAnalysis?.summary || 'Synthesizing academic trajectory...'}
-        </div>
+        {aiLoading ? (
+          <AIGeneratingAnimation
+            compact={true}
+            title="Gemini is streaming real-time academic intelligence..."
+            subtitle="Synthesizing multi-semester trajectory diagnostics, attendance trends & regulation RAG"
+          />
+        ) : (
+          <>
+            {/* AI Performance Summary */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-sm text-slate-800 leading-relaxed font-medium">
+              {(aiAnalysis as any)?.overallAssessment || aiAnalysis?.summary || 'Synthesizing academic trajectory...'}
+            </div>
 
-        {/* 2-Column AI Grid: Strengths vs Recommendations */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            {/* 2-Column AI Grid: Strengths vs Recommendations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           {/* Strengths */}
           <div className="p-4 rounded-xl bg-emerald-50/40 border border-emerald-200/60 space-y-3">
             <div className="flex items-center gap-2 text-[#3F7D58] font-bold text-xs uppercase tracking-wider">
@@ -346,12 +467,23 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
               <span>Identified Academic Strengths</span>
             </div>
             <ul className="space-y-2 text-xs text-slate-700">
-              {aiAnalysis?.strengths.map((st, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#3F7D58] mt-1.5 shrink-0" />
-                  <span>{st}</span>
-                </li>
-              ))}
+              {Array.isArray(aiAnalysis?.strengths) && aiAnalysis.strengths.length > 0 ? (
+                aiAnalysis.strengths.map((st: any, i: number) => {
+                  const title = typeof st === 'string' ? st : st?.title || '';
+                  const evidence = typeof st === 'object' && st?.evidence ? st.evidence : '';
+                  return (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#3F7D58] mt-1.5 shrink-0" />
+                      <div>
+                        <span className="font-semibold text-slate-900">{title}</span>
+                        {evidence ? <span className="text-slate-500 block text-[11px]">{evidence}</span> : null}
+                      </div>
+                    </li>
+                  );
+                })
+              ) : (
+                <li className="text-slate-400 italic text-[11px]">Consistent lecture participation and internal assessments</li>
+              )}
             </ul>
           </div>
 
@@ -362,15 +494,29 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }
               <span>Personalized Recommendations</span>
             </div>
             <ul className="space-y-2 text-xs text-slate-700">
-              {aiAnalysis?.personalizedRecommendations.map((rec, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] mt-1.5 shrink-0" />
-                  <span>{rec}</span>
-                </li>
-              ))}
+              {Array.isArray((aiAnalysis as any)?.recommendations || aiAnalysis?.personalizedRecommendations) &&
+              ((aiAnalysis as any)?.recommendations || aiAnalysis?.personalizedRecommendations).length > 0 ? (
+                ((aiAnalysis as any)?.recommendations || aiAnalysis?.personalizedRecommendations).map((rec: any, i: number) => {
+                  const title = typeof rec === 'string' ? rec : rec?.title || '';
+                  const action = typeof rec === 'object' && rec?.action ? rec.action : '';
+                  return (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] mt-1.5 shrink-0" />
+                      <div>
+                        <span className="font-semibold text-slate-900">{title}</span>
+                        {action ? <span className="text-slate-600 block text-[11px]">{action}</span> : null}
+                      </div>
+                    </li>
+                  );
+                })
+              ) : (
+                <li className="text-slate-400 italic text-[11px]">Maintain attendance and continuous assessment preparation</li>
+              )}
             </ul>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

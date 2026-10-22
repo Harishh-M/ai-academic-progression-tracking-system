@@ -105,10 +105,10 @@ export function requireStudentSelfOrStaff(req: Request, res: Response, next: Nex
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const targetStudentId = req.params.studentId || req.params.id;
+  const targetStudentId = req.params.studentId || req.params.id || req.body?.studentId;
 
   if (req.user.role === 'STUDENT') {
-    if (!req.user.studentId || req.user.studentId !== targetStudentId) {
+    if (!targetStudentId || !req.user.studentId || req.user.studentId !== targetStudentId) {
       return res.status(403).json({
         error: '403 Forbidden: Students are strictly prohibited from accessing another student academic record.',
       });

@@ -186,22 +186,59 @@ export class Database {
   // ================= USERS =================
   async getUserByUsernameOrEmail(identifier: string): Promise<User | null> {
     const trimmed = identifier.trim();
-    if (trimmed.toLowerCase() === 'faculty_rajesh') {
-      const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE role = "FACULTY" ORDER BY id ASC LIMIT 1');
-      return rows.length > 0 ? (rows[0] as User) : null;
-    }
-    if (trimmed.toLowerCase() === '24cse001') {
-      const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users WHERE role = "STUDENT" ORDER BY id ASC LIMIT 1');
-      return rows.length > 0 ? (rows[0] as User) : null;
+    if (!trimmed) return null;
+
+    const lower = trimmed.toLowerCase();
+
+    // 1. Admin login ('admin')
+    if (lower === 'admin') {
+      const [rows] = await pool.query<RowDataPacket[]>(
+        'SELECT * FROM users WHERE LOWER(username) = "admin" OR role = "ADMIN" ORDER BY (LOWER(username) = "admin") DESC LIMIT 1'
+      );
+      if (rows.length > 0) return rows[0] as User;
     }
 
+    // 2. COE login ('coe')
+    if (lower === 'coe') {
+      const [rows] = await pool.query<RowDataPacket[]>(
+        'SELECT * FROM users WHERE LOWER(username) = "coe" OR role = "COE" ORDER BY (LOWER(username) = "coe") DESC LIMIT 1'
+      );
+      if (rows.length > 0) return rows[0] as User;
+    }
+
+    // 3. Student login by student register number or admission number
+    const [stuRows] = await pool.query<RowDataPacket[]>(
+      `SELECT u.* FROM users u
+       JOIN students s ON s.user_id = u.id
+       WHERE LOWER(s.register_number) = LOWER(?)
+          OR LOWER(s.admission_number) = LOWER(?)
+       LIMIT 1`,
+      [trimmed, trimmed]
+    );
+    if (stuRows.length > 0) return stuRows[0] as User;
+
+    // 4. Faculty login by faculty user_id (e.g. FACAD001, FACBM001), faculty_code (AD001, BM001), or faculty id
+    const [facRows] = await pool.query<RowDataPacket[]>(
+      `SELECT u.* FROM users u
+       JOIN faculty f ON f.user_id = u.id
+       WHERE LOWER(f.user_id) = LOWER(?)
+          OR LOWER(f.faculty_code) = LOWER(?)
+          OR LOWER(f.id) = LOWER(?)
+          OR LOWER(u.id) = LOWER(?)
+       LIMIT 1`,
+      [trimmed, trimmed, trimmed, trimmed]
+    );
+    if (facRows.length > 0) return facRows[0] as User;
+
+    // 5. Standard fallback by username, email, or id
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT * FROM users
        WHERE LOWER(username) = LOWER(?)
           OR LOWER(email) = LOWER(?)
           OR LOWER(SUBSTRING_INDEX(email, '@', 1)) = LOWER(?)
+          OR LOWER(id) = LOWER(?)
        LIMIT 1`,
-      [trimmed, trimmed, trimmed]
+      [trimmed, trimmed, trimmed, trimmed]
     );
     return rows.length > 0 ? (rows[0] as User) : null;
   }
@@ -479,10 +516,18 @@ export class Database {
     return rows as AttendanceRecord[];
   }
 
+  async getAttendanceByCourse(courseId: string): Promise<AttendanceRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM attendance WHERE course_id = ? ORDER BY date DESC LIMIT 300',
+      [courseId]
+    );
+    return rows as AttendanceRecord[];
+  }
+
   async recordAttendanceBatch(
     records: Array<{ student_id: string; course_id: string; date: string; status: 'Present' | 'Absent' }>,
     facultyId: string,
-    logActor: { id: string; role: 'FACULTY'; name: string; ip: string }
+    logActor: { id: string; role: 'FACULTY' | 'ADMIN' | 'COE'; name: string; ip: string }
   ): Promise<AttendanceRecord[]> {
     const conn = await pool.getConnection();
     const updatedRecords: AttendanceRecord[] = [];
@@ -768,22 +813,80 @@ export class Database {
   }
 
   // ================= ACHIEVEMENTS =================
+  private normalizeAchievement(row: any): AchievementRecord {
+    let verification_links: { label: string; url: string }[] = [];
+    if (row.certificate_file) {
+      try {
+        const parsed = JSON.parse(row.certificate_file);
+        if (Array.isArray(parsed)) {
+          verification_links = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          verification_links = [parsed];
+        }
+      } catch {
+        verification_links = [{ label: 'Credential / Proof Link', url: row.certificate_file }];
+      }
+    }
+
+    let descriptionText = row.description || '';
+    let dynamic_fields: Record<string, string> | undefined = undefined;
+
+    if (descriptionText && descriptionText.trim().startsWith('{')) {
+      try {
+        const parsedDesc = JSON.parse(descriptionText);
+        if (parsedDesc && typeof parsedDesc === 'object') {
+          descriptionText = parsedDesc.summary || '';
+          dynamic_fields = parsedDesc.fields || parsedDesc.dynamic_fields;
+        }
+      } catch {}
+    }
+
+    return {
+      ...row,
+      description: descriptionText,
+      verification_links,
+      dynamic_fields,
+    };
+  }
+
   async getAchievementsByStudent(studentId: string): Promise<AchievementRecord[]> {
     const [rows] = await pool.query<RowDataPacket[]>(
       'SELECT * FROM achievements WHERE student_id = ? ORDER BY achievement_date DESC',
       [studentId]
     );
-    return rows as AchievementRecord[];
+    return (rows as any[]).map((r) => this.normalizeAchievement(r));
+  }
+
+  async getAllAchievements(): Promise<AchievementRecord[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT * FROM achievements 
+       ORDER BY (CASE WHEN verification_status = 'Pending' THEN 0 WHEN verification_status = 'Verified' THEN 1 ELSE 2 END), achievement_date DESC`
+    );
+    return (rows as any[]).map((r) => this.normalizeAchievement(r));
   }
 
   async saveAchievement(
     achievement: Omit<AchievementRecord, 'id' | 'created_at' | 'updated_at'> & { id?: string },
-    facultyId: string,
-    logActor: { id: string; role: 'FACULTY'; name: string; ip: string }
+    facultyId: string | null,
+    logActor: { id: string; role: UserRole; name: string; ip: string }
   ): Promise<AchievementRecord> {
     const conn = await pool.getConnection();
     const now = new Date();
     const nowIso = now.toISOString();
+
+    // Serialize dynamic fields & verification links if provided
+    let dbDesc = achievement.description || '';
+    if (achievement.dynamic_fields && Object.keys(achievement.dynamic_fields).length > 0) {
+      dbDesc = JSON.stringify({
+        summary: achievement.description || '',
+        fields: achievement.dynamic_fields,
+      });
+    }
+
+    let dbCert = achievement.certificate_file || null;
+    if (achievement.verification_links && achievement.verification_links.length > 0) {
+      dbCert = JSON.stringify(achievement.verification_links);
+    }
 
     try {
       await conn.beginTransaction();
@@ -800,6 +903,8 @@ export class Database {
       if (existing.length > 0) {
         const oldRow = existing[0];
         const oldVal = JSON.stringify(oldRow);
+        const newStatus = achievement.verification_status || oldRow.verification_status;
+        const verifier = newStatus === 'Verified' ? (facultyId || oldRow.verified_by) : (newStatus === 'Pending' ? null : oldRow.verified_by);
 
         res = {
           id: achievement.id!,
@@ -809,11 +914,13 @@ export class Database {
           description: achievement.description,
           achievement_date: achievement.achievement_date,
           organization: achievement.organization,
-          certificate_file: achievement.certificate_file,
-          verification_status: achievement.verification_status || oldRow.verification_status,
-          verified_by: achievement.verification_status === 'Verified' ? facultyId : oldRow.verified_by,
+          certificate_file: dbCert || undefined,
+          verification_status: newStatus,
+          verified_by: verifier,
           created_at: oldRow.created_at,
           updated_at: nowIso,
+          dynamic_fields: achievement.dynamic_fields,
+          verification_links: achievement.verification_links,
         };
 
         await conn.query(
@@ -823,8 +930,8 @@ export class Database {
             verified_by = ?, updated_at = ?
            WHERE id = ?`,
           [
-            res.title, res.category, res.description, res.achievement_date,
-            res.organization, res.certificate_file || null, res.verification_status,
+            res.title, res.category, dbDesc, res.achievement_date,
+            res.organization, dbCert, res.verification_status,
             res.verified_by || null, now, res.id,
           ]
         );
@@ -837,6 +944,9 @@ export class Database {
         );
       } else {
         const newId = achievement.id || `ach_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const initialStatus = achievement.verification_status || 'Verified';
+        const verifier = initialStatus === 'Verified' ? facultyId : null;
+
         res = {
           id: newId,
           student_id: achievement.student_id,
@@ -845,19 +955,21 @@ export class Database {
           description: achievement.description,
           achievement_date: achievement.achievement_date,
           organization: achievement.organization,
-          certificate_file: achievement.certificate_file,
-          verification_status: achievement.verification_status || 'Verified',
-          verified_by: facultyId,
+          certificate_file: dbCert || undefined,
+          verification_status: initialStatus,
+          verified_by: verifier,
           created_at: nowIso,
           updated_at: nowIso,
+          dynamic_fields: achievement.dynamic_fields,
+          verification_links: achievement.verification_links,
         };
 
         await conn.query(
           `INSERT INTO achievements (id, student_id, title, category, description, achievement_date, organization, certificate_file, verification_status, verified_by, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            newId, res.student_id, res.title, res.category, res.description, res.achievement_date,
-            res.organization, res.certificate_file || null, res.verification_status,
+            newId, res.student_id, res.title, res.category, dbDesc, res.achievement_date,
+            res.organization, dbCert, res.verification_status,
             res.verified_by, now, now,
           ]
         );
@@ -937,11 +1049,27 @@ export class Database {
   }
 
   // ================= RESULTS PUBLISHING & MANAGEMENT (COE / ADMIN) =================
-  async getAllSemesterResults(limit = 1000): Promise<SemesterResultRecord[]> {
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT * FROM semester_results ORDER BY id ASC LIMIT ?',
-      [limit]
-    );
+  async getAllSemesterResults(filters?: { semesterId?: string; courseId?: string; studentId?: string; limit?: number }): Promise<SemesterResultRecord[]> {
+    let sql = 'SELECT * FROM semester_results WHERE 1=1';
+    const params: any[] = [];
+
+    if (filters?.semesterId) {
+      sql += ' AND semester_id = ?';
+      params.push(filters.semesterId);
+    }
+    if (filters?.courseId) {
+      sql += ' AND course_id = ?';
+      params.push(filters.courseId);
+    }
+    if (filters?.studentId) {
+      sql += ' AND student_id = ?';
+      params.push(filters.studentId);
+    }
+
+    sql += ' ORDER BY id ASC LIMIT ?';
+    params.push(filters?.limit || 10000);
+
+    const [rows] = await pool.query<RowDataPacket[]>(sql, params);
     return rows.map((r) => ({
       ...r,
       grade_point: Number(r.grade_point),

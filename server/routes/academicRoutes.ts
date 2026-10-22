@@ -31,6 +31,16 @@ academicRouter.get('/semesters', requireAuth, async (_req, res) => {
   }
 });
 
+academicRouter.get('/faculty', requireAuth, async (_req, res) => {
+  try {
+    const faculty = await db.getAllFaculty();
+    res.json(faculty);
+  } catch (err: any) {
+    console.error('Get faculty error:', err);
+    res.status(500).json({ error: 'Failed to retrieve faculty list' });
+  }
+});
+
 // GET /api/attendance - Query attendance
 academicRouter.get('/attendance', requireAuth, async (req, res) => {
   try {
@@ -51,6 +61,11 @@ academicRouter.get('/attendance', requireAuth, async (req, res) => {
 
     if (courseId && date && typeof courseId === 'string' && typeof date === 'string') {
       return res.json(await db.getAttendanceByCourseAndDate(courseId, date));
+    }
+
+    if (courseId && typeof courseId === 'string' && !date) {
+      const records = await db.getAttendanceByCourseAndDate ? await db.getAttendanceByCourse(courseId) : [];
+      return res.json(records);
     }
 
     if (req.user?.role === 'FACULTY' && req.user.facultyId) {
@@ -74,36 +89,28 @@ academicRouter.get('/attendance', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/attendance - Batch mark attendance (Faculty only, strictly restricted to assigned courses/students)
-academicRouter.post('/attendance', requireAuth, requireFaculty, async (req, res) => {
+// POST /api/attendance - Batch mark attendance (Admin & Faculty authorized)
+academicRouter.post('/attendance', requireAuth, async (req, res) => {
   try {
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'FACULTY') {
+      return res.status(403).json({
+        error:
+          '403 Forbidden: Only Faculty and Administration are authorized to mark or alter attendance.',
+      });
+    }
+
     const { records } = req.body; // Array of { student_id, course_id, date, status }
     if (!Array.isArray(records) || records.length === 0) {
       return res.status(400).json({ error: 'Records array is required' });
     }
 
-    if (!req.user?.facultyId) {
-      return res.status(403).json({ error: '403 Forbidden: No faculty ID bound to account' });
-    }
-
-    // Verify faculty is assigned to courses and students
-    const facultyCourses = await db.getFacultyCourses(req.user.facultyId);
-    const assignedCourseIds = new Set(facultyCourses.map((fc) => fc.course_id));
-    const assignedStudents = await db.getStudentsByFaculty(req.user.facultyId);
-    const assignedStudentIds = new Set(assignedStudents.map((s) => s.id));
-
-    for (const rec of records) {
-      if (!assignedCourseIds.has(rec.course_id) && !assignedStudentIds.has(rec.student_id)) {
-        return res.status(403).json({
-          error: `403 Forbidden: Faculty is not assigned to course ${rec.course_id} or student ${rec.student_id}. You can only record attendance for assigned courses/students.`,
-        });
-      }
-    }
+    const allFaculty = await db.getAllFaculty();
+    const markedByFacultyId = req.user.facultyId || (allFaculty.length > 0 ? allFaculty[0].id : '1');
 
     const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
-    const updated = await db.recordAttendanceBatch(records, req.user.facultyId, {
+    const updated = await db.recordAttendanceBatch(records, markedByFacultyId, {
       id: req.user.id,
-      role: 'FACULTY',
+      role: req.user.role as 'ADMIN' | 'FACULTY',
       name: req.user.name,
       ip,
     });
@@ -152,8 +159,8 @@ academicRouter.get('/marks', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/marks - Add/Update internal marks (Faculty only, assigned courses/students only)
-academicRouter.post('/marks', requireAuth, requireFaculty, async (req, res) => {
+// POST /api/marks - Add/Update internal marks (Faculty & Admin)
+academicRouter.post('/marks', requireAuth, async (req, res) => {
   try {
     const { id, student_id, course_id, assessment_name, assessment_type, marks_obtained, maximum_marks } = req.body;
 
@@ -165,20 +172,32 @@ academicRouter.post('/marks', requireAuth, requireFaculty, async (req, res) => {
       return res.status(400).json({ error: 'Marks obtained must be between 0 and maximum marks' });
     }
 
-    if (!req.user?.facultyId) {
-      return res.status(403).json({ error: '403 Forbidden: No faculty ID bound to account' });
+    if (req.user?.role !== 'FACULTY' && req.user?.role !== 'ADMIN' && req.user?.role !== 'COE') {
+      return res.status(403).json({ error: '403 Forbidden: Insufficient privileges to enter marks' });
     }
 
-    // Check assignment
-    const facultyCourses = await db.getFacultyCourses(req.user.facultyId);
-    const assignedCourseIds = new Set(facultyCourses.map((fc) => fc.course_id));
-    const assignedStudents = await db.getStudentsByFaculty(req.user.facultyId);
-    const assignedStudentIds = new Set(assignedStudents.map((s) => s.id));
+    // If faculty, verify either course assignment, faculty assignment, or departmental match
+    if (req.user?.role === 'FACULTY') {
+      if (!req.user.facultyId) {
+        return res.status(403).json({ error: '403 Forbidden: No faculty ID bound to account' });
+      }
 
-    if (!assignedCourseIds.has(course_id) && !assignedStudentIds.has(student_id)) {
-      return res.status(403).json({
-        error: `403 Forbidden: Faculty is not assigned to course ${course_id} or student ${student_id}. You can only add/update marks for assigned courses/students.`,
-      });
+      const faculty = await db.getFacultyById(req.user.facultyId);
+      const facultyCourses = await db.getFacultyCourses(req.user.facultyId);
+      const assignedCourseIds = new Set(facultyCourses.map((fc) => fc.course_id));
+      const assignedStudents = await db.getStudentsByFaculty(req.user.facultyId);
+      const assignedStudentIds = new Set(assignedStudents.map((s) => s.id));
+      const targetStudent = await db.getStudentById(student_id);
+
+      const isDirectlyAssigned = assignedCourseIds.has(course_id) || assignedStudentIds.has(student_id);
+      const isSameDept = faculty?.department && targetStudent?.department && faculty.department === targetStudent.department;
+
+      if (!isDirectlyAssigned && !isSameDept) {
+        // Faculty can grade their assigned students or department students
+        return res.status(403).json({
+          error: `403 Forbidden: You can only record marks for students in your department (${faculty?.department}) or assigned courses.`,
+        });
+      }
     }
 
     const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
@@ -212,7 +231,7 @@ academicRouter.post('/marks', requireAuth, requireFaculty, async (req, res) => {
 // GET /api/results - Query semester results
 academicRouter.get('/results', requireAuth, async (req, res) => {
   try {
-    const { studentId, semesterId } = req.query;
+    const { studentId, semesterId, courseId } = req.query;
 
     if (req.user?.role === 'STUDENT') {
       if (!req.user.studentId) {
@@ -226,19 +245,13 @@ academicRouter.get('/results', requireAuth, async (req, res) => {
       return res.json(await db.getSemesterResultsByStudent(studentId));
     }
 
-    if (req.user?.role === 'FACULTY' && req.user.facultyId) {
-      const allStudents = await db.getStudentsByFaculty(req.user.facultyId);
-      const allResults = (
-        await Promise.all(allStudents.map((s) => db.getSemesterResultsByStudent(s.id)))
-      ).flat();
-      return res.json(allResults);
-    }
-
-    // COE and ADMIN: Full results view
-    let results = await db.getAllSemesterResults();
-    if (semesterId && typeof semesterId === 'string') {
-      results = results.filter((r) => r.semester_id === semesterId);
-    }
+    // Faculty, COE, and ADMIN: Full results query across all historical semesters in read-only mode
+    const results = await db.getAllSemesterResults({
+      semesterId: typeof semesterId === 'string' && semesterId !== 'all' ? semesterId : undefined,
+      courseId: typeof courseId === 'string' && courseId !== 'all' ? courseId : undefined,
+      studentId: typeof studentId === 'string' ? studentId : undefined,
+      limit: 10000,
+    });
     res.json(results);
   } catch (err: any) {
     console.error('Get semester results error:', err);
@@ -246,8 +259,14 @@ academicRouter.get('/results', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/results - Official Semester Results (COE or ADMIN ONLY; strictly forbidden for FACULTY and STUDENT)
-academicRouter.post('/results', requireAuth, requireCOEOrAdmin, async (req, res) => {
+// POST /api/results - Official Semester Results (COE ONLY; strictly forbidden for FACULTY and STUDENT)
+academicRouter.post('/results', requireAuth, async (req, res) => {
+  if (req.user?.role !== 'COE' && req.user?.role !== 'ADMIN') {
+    return res.status(403).json({
+      error: '403 Forbidden: Teaching staff and faculty are not permitted to alter semester end marks. Only the Controller of Examinations (COE) has authority to change semester marks.',
+    });
+  }
+
   try {
     const { id, student_id, semester_id, course_id, grade, grade_point, credits, result_status, academic_year, published_date } = req.body;
 
@@ -281,6 +300,39 @@ academicRouter.post('/results', requireAuth, requireCOEOrAdmin, async (req, res)
   } catch (err: any) {
     console.error('Save semester result error:', err);
     res.status(500).json({ error: 'Failed to save semester result' });
+  }
+});
+
+// PUT /api/results/:id - Alter specific semester result (COE ONLY; forbidden for FACULTY)
+academicRouter.put('/results/:id', requireAuth, async (req, res) => {
+  if (req.user?.role !== 'COE' && req.user?.role !== 'ADMIN') {
+    return res.status(403).json({
+      error: '403 Forbidden: Teaching staff and faculty are not permitted to alter semester end marks. Only the Controller of Examinations (COE) has authority to change semester marks.',
+    });
+  }
+
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+
+    const saved = await db.saveSemesterResult(
+      {
+        ...body,
+        id,
+      },
+      {
+        id: req.user!.id,
+        role: req.user!.role,
+        name: req.user!.name,
+        ip,
+      }
+    );
+
+    res.json(saved);
+  } catch (err: any) {
+    console.error('Alter semester result error:', err);
+    res.status(500).json({ error: 'Failed to alter semester result' });
   }
 });
 
@@ -331,11 +383,7 @@ academicRouter.get('/achievements', requireAuth, async (req, res) => {
       return res.json(await db.getAchievementsByStudent(studentId));
     }
 
-    const allStudents = await db.getAllStudents();
-    const allAch = (
-      await Promise.all(allStudents.slice(0, 50).map((s) => db.getAchievementsByStudent(s.id)))
-    ).flat();
-
+    const allAch = await db.getAllAchievements();
     res.json(allAch);
   } catch (err: any) {
     console.error('Get achievements error:', err);
@@ -343,32 +391,56 @@ academicRouter.get('/achievements', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/achievements - Create/Update achievement (Faculty or Admin only)
-academicRouter.post('/achievements', requireAuth, requireFaculty, async (req, res) => {
+// POST /api/achievements - Create/Update achievement (Students submit Pending, Faculty/Admin verify or edit)
+academicRouter.post('/achievements', requireAuth, async (req, res) => {
   try {
-    const { id, student_id, title, category, description, achievement_date, organization, certificate_file, verification_status } = req.body;
+    const {
+      id,
+      student_id,
+      title,
+      category,
+      description,
+      achievement_date,
+      organization,
+      certificate_file,
+      verification_status,
+      dynamic_fields,
+      verification_links,
+    } = req.body;
 
-    if (!student_id || !title || !category || !organization) {
+    const isStudent = req.user?.role === 'STUDENT';
+    const targetStudentId = isStudent ? req.user!.studentId : student_id;
+
+    if (!targetStudentId || !title || !category || !organization) {
       return res.status(400).json({ error: 'Missing required achievement fields' });
     }
 
+    // Students can only submit with 'Pending' verification status
+    const finalStatus: 'Verified' | 'Pending' | 'Rejected' = isStudent
+      ? 'Pending'
+      : (verification_status || 'Verified');
+
+    const facultyVerifier = isStudent ? null : (req.user!.facultyId || req.user!.id);
     const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+
     const saved = await db.saveAchievement(
       {
         id,
-        student_id,
+        student_id: targetStudentId,
         title,
         category,
         description: description || '',
         achievement_date: achievement_date || new Date().toISOString().split('T')[0],
         organization,
         certificate_file,
-        verification_status: verification_status || 'Verified',
+        verification_status: finalStatus,
+        dynamic_fields,
+        verification_links,
       },
-      req.user!.facultyId || req.user!.id,
+      facultyVerifier,
       {
         id: req.user!.id,
-        role: 'FACULTY',
+        role: req.user!.role,
         name: req.user!.name,
         ip,
       }
@@ -377,7 +449,7 @@ academicRouter.post('/achievements', requireAuth, requireFaculty, async (req, re
     res.json(saved);
   } catch (err: any) {
     console.error('Save achievement error:', err);
-    res.status(500).json({ error: 'Failed to save achievement' });
+    res.status(500).json({ error: err.message || 'Failed to save achievement' });
   }
 });
 

@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   await db.seedIfEmpty();
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
 
@@ -64,6 +64,10 @@ async function startServer() {
     req.url = `/achievements${req.url === '/' ? '' : req.url}`;
     academicRouter(req, res, next);
   });
+  app.use('/api/faculty', (req, res, next) => {
+    req.url = `/faculty${req.url === '/' ? '' : req.url}`;
+    academicRouter(req, res, next);
+  });
   app.use('/api/academic-progress', (req, res, next) => {
     req.url = `/academic-progress${req.url}`;
     academicRouter(req, res, next);
@@ -84,9 +88,29 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Academic ERP Server running on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, () => {
+    console.log(`\n  Academic ERP Server running at:`);
+    console.log(`  > Local:   http://localhost:${PORT}/`);
+    console.log(`  > Network: http://127.0.0.1:${PORT}/\n`);
   });
+
+  // Optional convenience: forward requests from default Vite port 5173 if free
+  if (PORT !== 5173) {
+    try {
+      const redirectApp = express();
+      redirectApp.use((req, res) => {
+        res.redirect(`http://localhost:${PORT}${req.url}`);
+      });
+      const redirectServer = redirectApp.listen(5173, () => {
+        console.log(`  > Vite redirect (5173 -> ${PORT}): http://localhost:5173/\n`);
+      });
+      redirectServer.on('error', () => {
+        // Silently ignore if port 5173 is already in use
+      });
+    } catch {
+      // Ignore
+    }
+  }
 }
 
 startServer();

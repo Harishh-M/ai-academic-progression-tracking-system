@@ -4,6 +4,8 @@ import {
   Student,
   CalculatedAcademicMetrics,
   AIAnalysisResult,
+  AcademicIntelligenceResponse,
+  AcademicIntelligenceData,
   AttendanceRecord,
   InternalMarkRecord,
   SemesterResultRecord,
@@ -109,6 +111,7 @@ export const api = {
   // Metadata
   getCourses: () => request<Course[]>('/courses'),
   getSemesters: () => request<Semester[]>('/semesters'),
+  getFaculty: () => request<Faculty[]>('/faculty'),
 
   // Attendance
   getAttendance: (params?: { studentId?: string; courseId?: string; date?: string }) => {
@@ -136,8 +139,17 @@ export const api = {
     }),
 
   // Results
-  getResults: (studentId?: string) =>
-    request<SemesterResultRecord[]>(studentId ? `/results?studentId=${studentId}` : '/results'),
+  getResults: (params?: string | { studentId?: string; semesterId?: string; courseId?: string }) => {
+    if (typeof params === 'string') {
+      return request<SemesterResultRecord[]>(params ? `/results?studentId=${params}` : '/results');
+    }
+    const q = new URLSearchParams();
+    if (params?.studentId) q.set('studentId', params.studentId);
+    if (params?.semesterId && params.semesterId !== 'all') q.set('semesterId', params.semesterId);
+    if (params?.courseId) q.set('courseId', params.courseId);
+    const qs = q.toString();
+    return request<SemesterResultRecord[]>(qs ? `/results?${qs}` : '/results');
+  },
 
   saveResult: (data: Partial<SemesterResultRecord>) =>
     request<SemesterResultRecord>('/results', {
@@ -166,6 +178,16 @@ export const api = {
     }),
 
   getAIAnalysis: (studentId: string) => request<AIAnalysisResult>(`/ai/analysis/${studentId}`),
+
+  // Real Gemini Academic Intelligence Engine (Master Phase 5)
+  analyzeAcademicIntelligence: (studentId: string) =>
+    request<AcademicIntelligenceResponse>('/ai/academic-intelligence/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ studentId }),
+    }),
+
+  getAcademicIntelligence: (studentId: string) =>
+    request<AcademicIntelligenceResponse>(`/ai/academic-intelligence/analysis/${studentId}`),
 
   sendAIChat: (message: string, targetStudentId?: string) =>
     request<{ response: string; citations?: Array<{ documentTitle: string; clause: string; snippet: string }> }>('/ai/chat', {

@@ -23,6 +23,10 @@ export const RiskBadge: React.FC<RiskBadgeProps> = ({ level, reasons, showIcon =
     colorClasses = 'bg-amber-50 text-[#B7791F] border-amber-200';
     Icon = AlertTriangle;
     label = 'Medium Risk';
+  } else if (norm === 'insufficient data') {
+    colorClasses = 'bg-slate-100 text-slate-600 border-slate-300';
+    Icon = AlertTriangle;
+    label = 'Insufficient Data';
   }
 
   return (
@@ -45,6 +49,7 @@ export const PerformanceBadge: React.FC<{ status: PerformanceStatus | string }> 
   else if (s === 'average') bg = 'bg-blue-50 text-[#3B6EA5] border-blue-200';
   else if (s === 'needs improvement') bg = 'bg-amber-50 text-[#B7791F] border-amber-200';
   else if (s === 'at risk') bg = 'bg-red-50 text-[#B94A48] border-red-200';
+  else if (s === 'insufficient data') bg = 'bg-slate-100 text-slate-600 border-slate-300 italic';
 
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${bg}`}>

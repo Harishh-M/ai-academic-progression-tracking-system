@@ -213,6 +213,22 @@ export async function calculateStudentMetrics(studentId: string): Promise<Calcul
   const totalAchievements = achievements.length;
   const verifiedAchievements = achievements.filter((a) => a.verification_status === 'Verified').length;
 
+  // Degree Progression & Credit Audit
+  const totalEarnedCredits = semesterSGPA.reduce((acc, s) => acc + s.earnedCredits, 0);
+  const totalRegisteredCredits = semesterSGPA.reduce((acc, s) => acc + s.totalCredits, 0);
+  const degreeRequiredCredits = 165;
+  const degreeProgressPercentage = Math.min(100, Math.round((totalEarnedCredits / degreeRequiredCredits) * 100));
+
+  let projectedClassification = 'First Class';
+  const honoursEligibility = cgpa >= 8.5 && totalArrearsCount === 0;
+  if (cgpa >= 8.5) {
+    projectedClassification = honoursEligibility ? 'First Class with Distinction (Honours)' : 'First Class with Distinction';
+  } else if (cgpa >= 6.5) {
+    projectedClassification = 'First Class';
+  } else {
+    projectedClassification = 'Second Class';
+  }
+
   return {
     totalClasses,
     presentClasses,
@@ -232,5 +248,11 @@ export async function calculateStudentMetrics(studentId: string): Promise<Calcul
     riskReasons,
     totalAchievements,
     verifiedAchievements,
+    totalEarnedCredits,
+    totalRegisteredCredits,
+    degreeRequiredCredits,
+    degreeProgressPercentage,
+    projectedClassification,
+    honoursEligibility,
   };
 }

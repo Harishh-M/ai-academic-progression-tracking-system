@@ -21,6 +21,7 @@ reportRouter.get('/student/:studentId', requireAuth, requireStudentSelfOrFaculty
     const achievements = await db.getAchievementsByStudent(studentId);
     const aiAnalysis = await db.getAIAnalysis(studentId);
     const courses = await db.getAllCourses();
+    const allSemesters = await db.getAllSemesters();
     const courseMap = new Map(courses.map((c) => [c.id, c]));
 
     res.json({
@@ -30,6 +31,8 @@ reportRouter.get('/student/:studentId', requireAuth, requireStudentSelfOrFaculty
       reportTitle: 'Official Student Academic Progress & Achievement Transcript',
       student,
       metrics,
+      semesters: allSemesters,
+      currentSemesterNumber: 4,
       courseWiseAttendance: metrics.courseWiseAttendance,
       internalMarks: internalMarks.map((im) => ({
         ...im,

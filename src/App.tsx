@@ -31,10 +31,19 @@ import { ProfileView } from './components/common/ProfileView.js';
 // COE & Admin Views
 import { COEDashboard } from './components/coe/COEDashboard.js';
 import { AdminDashboard } from './components/admin/AdminDashboard.js';
+import { DepartmentDirectoryDashboard } from './components/common/DepartmentDirectoryDashboard.js';
 
 const MainLayout: React.FC = () => {
   const { user, role, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    if (segments.length >= 2) {
+      const tab = segments[1];
+      if (tab === 'academic-analytics') return 'ai-insights';
+      return tab;
+    }
+    return 'dashboard';
+  });
   const [drilldownStudentId, setDrilldownStudentId] = useState<string | undefined>(undefined);
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname);
 
@@ -47,7 +56,12 @@ const MainLayout: React.FC = () => {
       // Extract sub-tab if specified (e.g. /student/attendance -> attendance)
       const segments = path.split('/').filter(Boolean);
       if (segments.length >= 2) {
-        setActiveTab(segments[1]);
+        const tab = segments[1];
+        if (tab === 'academic-analytics') {
+          setActiveTab('ai-insights');
+        } else {
+          setActiveTab(tab);
+        }
       } else {
         setActiveTab('dashboard');
       }
@@ -113,13 +127,22 @@ const MainLayout: React.FC = () => {
         <Sidebar activeTab={activeTab} onSelectTab={handleTabSelect} />
 
         <main className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
-          {/* 1. ADMIN Portal View */}
-          {role === 'ADMIN' && <AdminDashboard />}
+          {/* 1. ADMIN Portal View - Strictly Dedicated Administrative Nodes */}
+          {role === 'ADMIN' && (
+            <>
+              {activeTab === 'departments' && <DepartmentDirectoryDashboard />}
+              {activeTab === 'profile' && <ProfileView />}
+              {activeTab !== 'departments' && activeTab !== 'profile' && (
+                <AdminDashboard activeTab={activeTab} onSelectTab={handleTabSelect} />
+              )}
+            </>
+          )}
 
           {/* 2. COE Portal View */}
           {role === 'COE' && (
             <>
               {activeTab === 'dashboard' && <COEDashboard />}
+              {activeTab === 'departments' && <DepartmentDirectoryDashboard />}
               {activeTab === 'results' && <COEDashboard />}
               {activeTab === 'students' && (
                 <FacultyStudentsView
@@ -144,6 +167,7 @@ const MainLayout: React.FC = () => {
               {activeTab === 'dashboard' && (
                 <FacultyDashboard onNavigate={handleFacultyNavigation} />
               )}
+              {activeTab === 'departments' && <DepartmentDirectoryDashboard />}
               {activeTab === 'students' && (
                 <FacultyStudentsView
                   onNavigateToStudentProgress={(stuId) => handleFacultyNavigation('academic-progress', stuId)}
@@ -160,29 +184,62 @@ const MainLayout: React.FC = () => {
                   onNavigateToAI={(stuId) => handleFacultyNavigation('ai-insights', stuId)}
                 />
               )}
-              {activeTab === 'ai-insights' && (
+              {(activeTab === 'ai-insights' || activeTab === 'academic-analytics') && (
                 <FacultyAIInsightsView initialStudentId={drilldownStudentId} />
               )}
               {activeTab === 'reports' && <FacultyReportsView />}
               {activeTab === 'audit-logs' && <FacultyAuditLogsView />}
               {activeTab === 'profile' && <ProfileView />}
+              {![
+                'dashboard',
+                'departments',
+                'students',
+                'attendance',
+                'marks',
+                'results',
+                'achievements',
+                'academic-progress',
+                'ai-insights',
+                'academic-analytics',
+                'reports',
+                'audit-logs',
+                'profile',
+              ].includes(activeTab) && (
+                <FacultyDashboard onNavigate={handleFacultyNavigation} />
+              )}
             </>
           )}
 
           {/* 4. STUDENT Portal Views (Strictly Read-Only) */}
           {role === 'STUDENT' && (
             <>
+              {activeTab === 'departments' && <DepartmentDirectoryDashboard />}
               {activeTab === 'dashboard' && (
                 <StudentDashboard onNavigate={handleTabSelect} />
               )}
-              {activeTab === 'my-profile' && <StudentProfileView />}
+              {(activeTab === 'my-profile' || activeTab === 'profile') && <StudentProfileView />}
               {activeTab === 'attendance' && <StudentAttendanceView />}
               {activeTab === 'marks' && <StudentMarksView />}
               {activeTab === 'results' && <StudentResultsView />}
               {activeTab === 'achievements' && <StudentAchievementsView />}
               {activeTab === 'academic-progress' && <StudentProgressView />}
-              {activeTab === 'ai-insights' && <StudentAIInsightsView />}
+              {(activeTab === 'ai-insights' || activeTab === 'academic-analytics') && <StudentAIInsightsView />}
               {activeTab === 'reports' && <StudentReportsView />}
+              {![
+                'dashboard',
+                'my-profile',
+                'profile',
+                'attendance',
+                'marks',
+                'results',
+                'achievements',
+                'academic-progress',
+                'ai-insights',
+                'academic-analytics',
+                'reports',
+              ].includes(activeTab) && (
+                <StudentDashboard onNavigate={handleTabSelect} />
+              )}
             </>
           )}
         </main>

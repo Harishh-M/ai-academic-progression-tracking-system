@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.js';
 import { api } from '../../services/api.js';
 import {
-  AIAnalysisResult,
+  AcademicIntelligenceData,
   CalculatedAcademicMetrics,
   Student,
   InstitutionalRegulation,
@@ -19,18 +19,23 @@ import {
   BookOpen,
   MessageSquare,
   FileText,
-  ShieldCheck,
   RefreshCw,
+  Clock,
+  Info,
 } from 'lucide-react';
+import { AIGeneratingAnimation } from '../common/AIGeneratingAnimation.js';
 
 export const StudentAIInsightsView: React.FC = () => {
   const { user } = useAuth();
-  const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('loading');
+  const [analysis, setAnalysis] = useState<AcademicIntelligenceData | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [engineName, setEngineName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const [metrics, setMetrics] = useState<CalculatedAcademicMetrics | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
   const [regulations, setRegulations] = useState<InstitutionalRegulation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Chat State
   const [chatInput, setChatInput] = useState('');
@@ -44,35 +49,66 @@ export const StudentAIInsightsView: React.FC = () => {
   ]);
   const [chatLoading, setChatLoading] = useState(false);
 
+  // Load verified data and cached analysis
   useEffect(() => {
-    if (user?.studentId) {
-      setLoading(true);
-      Promise.all([
-        api.getStudentById(user.studentId),
-        api.getAIAnalysis(user.studentId),
-        api.getRegulations(),
-      ])
-        .then(([stuRes, aiRes, regs]) => {
-          setStudent(stuRes.student);
-          setMetrics(stuRes.metrics);
-          setAnalysis(aiRes);
-          setRegulations(regs);
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    }
+    if (!user?.studentId) return;
+
+    setStatus('loading');
+    setError(null);
+
+    Promise.all([
+      api.getStudentById(user.studentId),
+      api.getRegulations(),
+    ])
+      .then(([stuRes, regs]) => {
+        setStudent(stuRes.student);
+        setMetrics(stuRes.metrics);
+        setRegulations(regs);
+
+        // Fetch cached academic intelligence
+        return api.getAcademicIntelligence(user.studentId);
+      })
+      .then((aiRes) => {
+        if (aiRes && aiRes.data && aiRes.data.overallAssessment) {
+          setAnalysis(aiRes.data);
+          setGeneratedAt(aiRes.generatedAt);
+          setEngineName(aiRes.engine);
+          setStatus('success');
+        } else {
+          setStatus('idle');
+        }
+      })
+      .catch((err) => {
+        console.warn('Initial intelligence load info:', err);
+        // If analysis hasn't been generated yet, present Idle state to let user generate
+        setStatus('idle');
+      });
   }, [user?.studentId]);
 
-  const handleRefreshAI = async () => {
-    if (!user?.studentId) return;
-    setRefreshing(true);
+  const handleGenerateAnalysis = async () => {
+    if (!user?.studentId || status === 'loading') return;
+
+    setStatus('loading');
+    setError(null);
+
+    const minAnimationDelay = new Promise((resolve) => setTimeout(resolve, 3200));
     try {
-      const fresh = await api.triggerAIAnalysis(user.studentId);
-      setAnalysis(fresh);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setRefreshing(false);
+      const [response] = await Promise.all([
+        api.analyzeAcademicIntelligence(user.studentId),
+        minAnimationDelay,
+      ]);
+      if (response && response.data) {
+        setAnalysis(response.data);
+        setGeneratedAt(response.generatedAt);
+        setEngineName(response.engine);
+        setStatus('success');
+      } else {
+        throw new Error('Received empty response from Academic Intelligence engine.');
+      }
+    } catch (err: any) {
+      console.error('AI Analysis failed:', err);
+      setError(err.message || 'Gemini Academic Intelligence failed to generate appraisal.');
+      setStatus('error');
     }
   };
 
@@ -101,13 +137,12 @@ export const StudentAIInsightsView: React.FC = () => {
     }
   };
 
-  if (loading || !analysis || !metrics) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const formattedDate = generatedAt
+    ? new Date(generatedAt).toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : null;
 
   return (
     <div className="space-y-6">
@@ -116,120 +151,230 @@ export const StudentAIInsightsView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-slate-300" />
+              <Sparkles className="w-5 h-5 text-amber-300" />
               <h1 className="text-2xl font-bold">Academic Intelligence & Trajectory Diagnostics</h1>
             </div>
             <p className="text-xs text-slate-300">
-              Institutional Analytics Engine • Analyzes verified ERP grades, attendance trends, and university academic regulations
+              {engineName || 'Gemini Academic Intelligence Engine'} • Analyzes verified ERP grades, attendance trends, and university academic regulations
             </p>
+            {formattedDate && (
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-300 pt-1">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Generated on {formattedDate}</span>
+              </div>
+            )}
           </div>
 
           <button
             id="btn-regenerate-ai"
-            onClick={handleRefreshAI}
-            disabled={refreshing}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white border border-white/20 transition flex items-center gap-2 self-start sm:self-auto"
+            onClick={handleGenerateAnalysis}
+            disabled={status === 'loading'}
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-50 text-xs font-semibold text-white border border-white/20 transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>{refreshing ? 'Re-evaluating...' : 'Regenerate Analysis'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${status === 'loading' ? 'animate-spin' : ''}`} />
+            <span>{status === 'loading' ? 'Analyzing...' : 'Regenerate Analysis'}</span>
           </button>
         </div>
       </div>
 
-      {/* AI Performance Summary */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#1E3A5F]" />
-            <h2 className="font-bold text-slate-900 text-base">Comprehensive Performance Appraisal</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <RiskBadge level={analysis.riskLevel} />
-            <PerformanceBadge status={metrics.performanceStatus} />
-          </div>
-        </div>
+      {/* STATE 1: LOADING WITH AI ANIMATION */}
+      {status === 'loading' && (
+        <AIGeneratingAnimation
+          title="Gemini Academic Intelligence is analyzing your performance..."
+          subtitle="Grounding verified continuous internal assessment scores, multi-semester SGPA trajectories, and statutory regulations"
+        />
+      )}
 
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 leading-relaxed font-medium">
-          {analysis.summary}
+      {/* STATE 2: IDLE */}
+      {status === 'idle' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 shadow-xs text-center space-y-5">
+          <div className="w-14 h-14 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto text-[#1E3A5F]">
+            <Sparkles className="w-7 h-7 text-[#1E3A5F]" />
+          </div>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-lg font-bold text-slate-900">AI Academic Intelligence Ready</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Generate an objective, evidence-grounded performance diagnostic report based on your actual marks, attendance, and semester results.
+            </p>
+          </div>
+          <button
+            id="btn-generate-ai-initial"
+            onClick={handleGenerateAnalysis}
+            className="px-5 py-2.5 bg-[#1E3A5F] hover:bg-[#16304F] text-white font-semibold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-2 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>Generate Academic Analysis</span>
+          </button>
         </div>
+      )}
 
-        {/* Trajectory & Risk Reasons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-slate-900">
-              <TrendingUp className="w-4 h-4 text-[#1E3A5F]" />
-              <span>Performance Trajectory Explanation</span>
+      {/* STATE 3: ERROR */}
+      {status === 'error' && (
+        <div className="bg-red-50 rounded-2xl border border-red-200 p-8 shadow-xs text-center space-y-4">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-sm font-bold text-red-900">Analysis Generation Encountered an Issue</h3>
+            <p className="text-xs text-red-700">{error || 'Unable to complete evaluation at this time.'}</p>
+          </div>
+          <button
+            id="btn-retry-ai"
+            onClick={handleGenerateAnalysis}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry Analysis</span>
+          </button>
+        </div>
+      )}
+
+      {/* STATE 4: SUCCESS */}
+      {status === 'success' && analysis && (
+        <>
+          {/* Comprehensive Performance Appraisal */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#1E3A5F]" />
+                <h2 className="font-bold text-slate-900 text-base">Comprehensive Performance Appraisal</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <RiskBadge level={analysis.riskLevel} />
+                <PerformanceBadge status={analysis.performanceLevel} />
+              </div>
             </div>
-            <p className="text-slate-700 leading-relaxed">{analysis.performanceTrendExplanation}</p>
-          </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-slate-900">
-              <AlertTriangle className="w-4 h-4 text-[#B7791F]" />
-              <span>Diagnostic Standing Rationale</span>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 leading-relaxed font-medium">
+              {analysis.overallAssessment}
             </div>
-            <ul className="space-y-1 text-slate-700">
-              {analysis.riskReasons.map((r, i) => (
-                <li key={i} className="flex items-start gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#B7791F] mt-1.5 shrink-0" />
-                  <span>{r}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
 
-      {/* 3-Column Diagnostic Matrix: Strengths, Weak Subjects, Recommendations */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Strengths */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-          <div className="flex items-center gap-2 text-[#3F7D58] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
-            <CheckCircle2 className="w-4 h-4 text-[#3F7D58]" />
-            <span>Academic Strengths</span>
-          </div>
-          <ul className="space-y-2 text-xs text-slate-700">
-            {analysis.strengths.map((st, i) => (
-              <li key={i} className="flex items-start gap-2 bg-emerald-50/40 p-2.5 rounded-lg border border-emerald-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#3F7D58] mt-1.5 shrink-0" />
-                <span>{st}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+            {/* Trajectory & Risk Reasons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-slate-900">
+                  <TrendingUp className="w-4 h-4 text-[#1E3A5F]" />
+                  <span>Performance Trajectory Explanation</span>
+                </div>
+                <p className="text-slate-700 leading-relaxed">{analysis.trajectoryExplanation}</p>
+              </div>
 
-        {/* Weak Subjects */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-          <div className="flex items-center gap-2 text-[#B94A48] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
-            <Target className="w-4 h-4 text-[#B94A48]" />
-            <span>Weak Subjects / Attention Areas</span>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-slate-900">
+                  <AlertTriangle className="w-4 h-4 text-[#B7791F]" />
+                  <span>Diagnostic Standing Rationale</span>
+                </div>
+                <p className="text-slate-700 leading-relaxed">{analysis.diagnosticRationale}</p>
+              </div>
+            </div>
           </div>
-          <ul className="space-y-2 text-xs text-slate-700">
-            {analysis.weakSubjects.map((ws, i) => (
-              <li key={i} className="flex items-start gap-2 bg-red-50/40 p-2.5 rounded-lg border border-red-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#B94A48] mt-1.5 shrink-0" />
-                <span>{ws}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
 
-        {/* Personalized Recommendations */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-          <div className="flex items-center gap-2 text-[#1E3A5F] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
-            <Lightbulb className="w-4 h-4 text-[#1E3A5F]" />
-            <span>Personalized Recommendations</span>
+          {/* 3-Column Diagnostic Matrix: Strengths, Weak Subjects, Recommendations */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Academic Strengths */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-[#3F7D58] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
+                <CheckCircle2 className="w-4 h-4 text-[#3F7D58]" />
+                <span>Academic Strengths</span>
+              </div>
+              {analysis.strengths && analysis.strengths.length > 0 ? (
+                <ul className="space-y-2.5 text-xs">
+                  {analysis.strengths.map((st, i) => (
+                    <li key={i} className="bg-emerald-50/40 p-3 rounded-xl border border-emerald-200/60 space-y-1">
+                      <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3F7D58] shrink-0" />
+                        <span>{st.title}</span>
+                      </div>
+                      <p className="text-slate-600 text-[11px] leading-relaxed pl-3">{st.evidence}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-500 italic">No specific academic strengths identified in available records.</p>
+              )}
+            </div>
+
+            {/* Weak Subjects / Attention Areas */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-[#B94A48] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
+                <Target className="w-4 h-4 text-[#B94A48]" />
+                <span>Weak Subjects / Attention Areas</span>
+              </div>
+              {analysis.attentionAreas && analysis.attentionAreas.length > 0 ? (
+                <ul className="space-y-2.5 text-xs">
+                  {analysis.attentionAreas.map((area, i) => (
+                    <li key={i} className="bg-red-50/40 p-3 rounded-xl border border-red-200/60 space-y-1.5">
+                      <div className="font-bold text-red-950 flex items-center justify-between gap-1">
+                        <span className="truncate">{area.subject}</span>
+                      </div>
+                      <div className="text-[11px] font-semibold text-red-800">{area.issue}</div>
+                      <p className="text-slate-600 text-[11px] leading-relaxed">{area.evidence}</p>
+                      <div className="text-[11px] text-red-900 bg-red-100/60 p-1.5 rounded-md">
+                        <strong>Suggested Action:</strong> {area.suggestedAction}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-500 italic">Zero critical weak subjects or attention areas flagged.</p>
+              )}
+            </div>
+
+            {/* Personalized Recommendations */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-[#1E3A5F] font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
+                <Lightbulb className="w-4 h-4 text-[#1E3A5F]" />
+                <span>Personalized Recommendations</span>
+              </div>
+              {analysis.recommendations && analysis.recommendations.length > 0 ? (
+                <ul className="space-y-2.5 text-xs">
+                  {analysis.recommendations.map((rec, i) => {
+                    const isHigh = rec.priority === 'High';
+                    const isMed = rec.priority === 'Medium';
+                    const badgeClass = isHigh
+                      ? 'bg-red-100 text-red-800 border-red-200'
+                      : isMed
+                      ? 'bg-amber-100 text-amber-800 border-amber-200'
+                      : 'bg-blue-100 text-blue-800 border-blue-200';
+
+                    return (
+                      <li key={i} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-slate-900">{rec.title}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeClass}`}>
+                            {rec.priority} Priority
+                          </span>
+                        </div>
+                        <p className="text-slate-500 text-[11px] italic">{rec.reason}</p>
+                        <p className="text-slate-800 text-[11px] leading-relaxed font-medium bg-white p-2 rounded-lg border border-slate-100">
+                          {rec.action}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-500 italic">No immediate academic recommendations generated.</p>
+              )}
+            </div>
           </div>
-          <ul className="space-y-2 text-xs text-slate-700">
-            {analysis.personalizedRecommendations.map((rec, i) => (
-              <li key={i} className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1E3A5F] mt-1.5 shrink-0" />
-                <span>{rec}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+
+          {/* Data Scope & Limitations */}
+          {analysis.dataLimitations && analysis.dataLimitations.length > 0 && (
+            <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 shadow-xs">
+              <div className="flex items-center gap-2 text-slate-700 font-semibold text-xs pb-2 border-b border-slate-200/60 mb-2">
+                <Info className="w-4 h-4 text-slate-500" />
+                <span>Institutional Data Scope & Limitations</span>
+              </div>
+              <ul className="space-y-1 text-xs text-slate-600 pl-5 list-disc">
+                {analysis.dataLimitations.map((lim, i) => (
+                  <li key={i}>{lim}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Interactive AI Academic Advisor Chat & RAG Regulations Section */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -296,21 +441,21 @@ export const StudentAIInsightsView: React.FC = () => {
           <button
             type="button"
             onClick={() => setChatInput('What is the minimum attendance required under Clause 4.2?')}
-            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap"
+            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap cursor-pointer"
           >
             "What is the minimum attendance rule?"
           </button>
           <button
             type="button"
             onClick={() => setChatInput('What are my weakest courses and how can I clear them?')}
-            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap"
+            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap cursor-pointer"
           >
             "What are my weakest subjects?"
           </button>
           <button
             type="button"
             onClick={() => setChatInput('How is my SGPA and CGPA calculated under the grading system?')}
-            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap"
+            className="px-2.5 py-1 rounded-full bg-white border border-slate-300 hover:border-[#1E3A5F] text-slate-700 whitespace-nowrap cursor-pointer"
           >
             "Explain grading system & CGPA formula"
           </button>
@@ -330,7 +475,7 @@ export const StudentAIInsightsView: React.FC = () => {
             id="btn-send-chat"
             type="submit"
             disabled={!chatInput.trim() || chatLoading}
-            className="px-4 py-2.5 bg-[#1E3A5F] hover:bg-[#16304F] disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-[#1E3A5F] hover:bg-[#16304F] disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5 cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" />
             <span>Ask Advisor</span>
